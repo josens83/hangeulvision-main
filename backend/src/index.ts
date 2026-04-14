@@ -46,7 +46,7 @@ function createApp() {
     });
   });
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", uptime: process.uptime() });
+    res.json({ status: "ok", service: "hangeulvision" });
   });
   app.get("/ready", (_req, res) => {
     // TODO: ping Prisma once DATABASE_URL is configured.
@@ -77,11 +77,10 @@ function createApp() {
 
 export const app = createApp();
 
-if (require.main === module) {
-  app.listen(config.port, () => {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[hangeulvision] backend listening on :${config.port} (env=${config.env})`,
-    );
-  });
-}
+// Always bind when this file is the entry point. Railway sets $PORT at runtime
+// (we honor it); local / Docker default to 8080 to match VocaVision.
+const port = Number(process.env.PORT ?? 8080);
+app.listen(port, "0.0.0.0", () => {
+  // eslint-disable-next-line no-console
+  console.log(`🚀 HangeulVision API running on port ${port}`);
+});
