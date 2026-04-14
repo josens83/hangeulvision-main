@@ -13,6 +13,7 @@ import { paddleRouter } from "./routes/paddle.routes";
 import { paymentsRouter } from "./routes/payments.routes";
 import { progressRouter } from "./routes/progress.routes";
 import { subscriptionRouter } from "./routes/subscription.routes";
+import { userRouter } from "./routes/user.routes";
 import { wordRouter } from "./routes/word.routes";
 
 function createApp() {
@@ -54,6 +55,7 @@ function createApp() {
 
   // ─── Routes ─────────────────────────────────────────────
   app.use("/auth", authRouter);
+  app.use("/user", userRouter);
   app.use("/words", wordRouter);
   app.use("/learning", learningRouter);
   app.use("/progress", progressRouter);

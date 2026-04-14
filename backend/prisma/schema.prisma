@@ -165,6 +165,7 @@ model Word {
   visuals        WordVisual[]
   videos         WordVideo[]
   imageQueue     ImageQueueItem[]
+  examLevels     WordExamLevel[]
   synonyms       Synonym[]     @relation("WordSynonyms")
   synonymOf      Synonym[]     @relation("WordSynonymOf")
   antonyms       Antonym[]     @relation("WordAntonyms")
@@ -180,6 +181,24 @@ model Word {
   @@unique([word, partOfSpeech])
   @@index([exam, level])
   @@index([level])
+}
+
+// Join table: a single word can appear in multiple exams at different levels
+// (e.g. 감사하다 belongs to TOPIK_I L1 *and* KIIP Stage 1 at the same time).
+// `Word.exam` / `Word.level` still carry the primary classification; this
+// model lets the content team tag words with additional exam contexts.
+model WordExamLevel {
+  id        String       @id @default(cuid())
+  wordId    String
+  word      Word         @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  exam      ExamCategory
+  level     Int          // 1..6 for TOPIK, 1..5 for KIIP stages
+  priority  Int          @default(0)   // higher = surfaces sooner in curricula
+  note      String?
+  createdAt DateTime     @default(now())
+
+  @@unique([wordId, exam, level])
+  @@index([exam, level])
 }
 
 model Etymology {
