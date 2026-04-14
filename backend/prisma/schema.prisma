@@ -1,0 +1,591 @@
+// HangeulVision AI — Prisma schema
+// Mirrors the VocaVision AI backend schema (spec §5-3) with the ExamCategory
+// enum swapped to the Korean-language exam taxonomy. Field *meanings* flip
+// (word/translation/pronunciation), but the *structure* is identical — that
+// is the core insight that enabled 93% code reuse.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum ExamCategory {
+  TOPIK_I
+  TOPIK_II_MID
+  TOPIK_II_ADV
+  KIIP
+  EPS_TOPIK
+  THEME
+  GENERAL
+}
+
+enum Tier {
+  free
+  basic
+  premium
+}
+
+enum Role {
+  user
+  editor
+  admin
+}
+
+enum PartOfSpeech {
+  NOUN
+  VERB
+  ADJ
+  ADV
+  PARTICLE
+  INTERJ
+  DET
+  PRONOUN
+  NUMERAL
+  OTHER
+}
+
+enum OriginLanguage {
+  SINO_KOREAN
+  NATIVE
+  LOANWORD
+  UNKNOWN
+}
+
+enum ImageKind {
+  CONCEPT
+  MNEMONIC
+  RHYME
+}
+
+enum ImageStatus {
+  QUEUED
+  GENERATING
+  READY
+  FAILED
+}
+
+enum PaymentProvider {
+  toss
+  paddle
+  mock
+}
+
+enum PaymentKind {
+  subscription
+  one_time
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+  canceled
+}
+
+enum SessionMode {
+  learn
+  review
+  quiz
+  flashcard
+}
+
+enum NotificationKind {
+  reminder
+  streak
+  achievement
+  system
+}
+
+// ─── Users & auth ──────────────────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  passwordHash   String?
+  googleId       String?  @unique
+  locale         String   @default("en")
+  tier           Tier     @default(free)
+  role           Role     @default(user)
+  streakDays     Int      @default(0)
+  lastActiveAt   DateTime?
+  emailVerifiedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  progress       UserProgress[]
+  sessions       LearningSession[]
+  payments       Payment[]
+  purchases      UserPurchase[]
+  achievements   UserAchievement[]
+  notifications  Notification[]
+  bookmarks      Bookmark[]
+  collections    Collection[]
+  decks          Deck[]
+  goals          Goal[]
+  leagueEntries  LeagueParticipant[]
+  quizzes        Quiz[]
+  chats          Chat[]
+
+  @@index([tier])
+  @@index([createdAt])
+}
+
+// ─── Word content graph ────────────────────────────────────────────────────
+
+model Word {
+  id             String        @id @default(cuid())
+  word           String        // 포기하다
+  romanization   String        // pogihada
+  ipa            String?       // /po̞.ɡi.ɦa̠.da/
+  phonetic       String?       // English-speaker approximation
+  definitionEn   String        // authoritative English gloss
+  definitionJa   String?
+  definitionVi   String?
+  definitionZh   String?
+  partOfSpeech   PartOfSpeech  @default(OTHER)
+  level          Int           // 1..6 (TOPIK level)
+  exam           ExamCategory  @default(GENERAL)
+  tags           String[]      @default([])
+  active         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  etymology      Etymology?
+  mnemonic       Mnemonic?
+  examples       Example[]
+  collocations   Collocation[]
+  visuals        WordVisual[]
+  videos         WordVideo[]
+  imageQueue     ImageQueueItem[]
+  synonyms       Synonym[]     @relation("WordSynonyms")
+  synonymOf      Synonym[]     @relation("WordSynonymOf")
+  antonyms       Antonym[]     @relation("WordAntonyms")
+  antonymOf      Antonym[]     @relation("WordAntonymOf")
+  rhymes         Rhyme[]       @relation("WordRhymes")
+  rhymeOf        Rhyme[]       @relation("WordRhymeOf")
+  progressRows   UserProgress[]
+  bookmarks      Bookmark[]
+  packageWords   ProductPackageWord[]
+  deckWords      DeckWord[]
+  collectionWords CollectionWord[]
+
+  @@unique([word, partOfSpeech])
+  @@index([exam, level])
+  @@index([level])
+}
+
+model Etymology {
+  id         String         @id @default(cuid())
+  wordId     String         @unique
+  word       Word           @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  origin     String         // 抛棄  |  사랑  |  computer (English)
+  language   OriginLanguage @default(UNKNOWN)
+  rootWords  Json           // Hanja[] for SINO_KOREAN, string[] otherwise
+  evolution  String?
+  originEn   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model Mnemonic {
+  id           String   @id @default(cuid())
+  wordId       String   @unique
+  word         Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  englishHint  String
+  syllables    String[] @default([])
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Example {
+  id           String   @id @default(cuid())
+  wordId       String
+  word         Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  position     Int      @default(0)
+  sentence     String
+  translation  String
+  highlight    String?
+  audioUrl     String?
+
+  @@index([wordId, position])
+}
+
+model Collocation {
+  id           String   @id @default(cuid())
+  wordId       String
+  word         Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  phrase       String
+  translation  String
+
+  @@index([wordId])
+}
+
+model WordVisual {
+  id         String      @id @default(cuid())
+  wordId     String
+  word       Word        @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  kind       ImageKind
+  url        String
+  prompt     String?
+  width      Int?
+  height     Int?
+  createdAt  DateTime    @default(now())
+
+  @@unique([wordId, kind])
+  @@index([wordId])
+}
+
+model WordVideo {
+  id         String   @id @default(cuid())
+  wordId     String
+  word       Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  format     String   // "short" | "story" | "tiktok"
+  url        String
+  thumbnail  String?
+  duration   Int?
+  createdAt  DateTime @default(now())
+
+  @@index([wordId, format])
+}
+
+model ImageQueueItem {
+  id         String      @id @default(cuid())
+  wordId     String
+  word       Word        @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  kind       ImageKind
+  prompt     String
+  status     ImageStatus @default(QUEUED)
+  error      String?
+  attempts   Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// ─── Relational word-pair tables (synonyms / antonyms / rhymes) ────────────
+
+model Synonym {
+  id        String @id @default(cuid())
+  wordId    String
+  relatedId String
+  note      String?
+  word      Word   @relation("WordSynonyms", fields: [wordId], references: [id], onDelete: Cascade)
+  related   Word   @relation("WordSynonymOf", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@unique([wordId, relatedId])
+}
+
+model Antonym {
+  id        String @id @default(cuid())
+  wordId    String
+  relatedId String
+  note      String?
+  word      Word   @relation("WordAntonyms", fields: [wordId], references: [id], onDelete: Cascade)
+  related   Word   @relation("WordAntonymOf", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@unique([wordId, relatedId])
+}
+
+model Rhyme {
+  id        String @id @default(cuid())
+  wordId    String
+  relatedId String
+  word      Word   @relation("WordRhymes", fields: [wordId], references: [id], onDelete: Cascade)
+  related   Word   @relation("WordRhymeOf", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@unique([wordId, relatedId])
+}
+
+// ─── Learning & progress ───────────────────────────────────────────────────
+
+model UserProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  wordId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word            Word      @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  ease            Float     @default(2.5)
+  interval        Int       @default(0)
+  reps            Int       @default(0)
+  dueAt           DateTime  @default(now())
+  lastGrade       Int?
+  lastReviewedAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, wordId])
+  @@index([userId, dueAt])
+}
+
+model LearningSession {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode         SessionMode  @default(review)
+  exam         ExamCategory?
+  startedAt    DateTime     @default(now())
+  completedAt  DateTime?
+  cardsSeen    Int          @default(0)
+  cardsKnown   Int          @default(0)
+  cardsHard    Int          @default(0)
+  cardsMissed  Int          @default(0)
+
+  @@index([userId, startedAt])
+}
+
+// ─── Commerce ──────────────────────────────────────────────────────────────
+
+model ProductPackage {
+  id              String              @id @default(cuid())
+  slug            String              @unique   // e.g. "topik-ii-mid"
+  name            String
+  description     String
+  exam            ExamCategory
+  priceUSD        Decimal             @db.Decimal(10, 2)
+  priceKRW        Int
+  durationDays    Int                 @default(180)
+  paddleProductId String?
+  active          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  words           ProductPackageWord[]
+  purchases       UserPurchase[]
+
+  @@index([exam, active])
+}
+
+model ProductPackageWord {
+  id         String         @id @default(cuid())
+  packageId  String
+  wordId     String
+  position   Int            @default(0)
+  package    ProductPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  word       Word           @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, wordId])
+}
+
+model UserPurchase {
+  id         String         @id @default(cuid())
+  userId     String
+  packageId  String
+  exam       ExamCategory
+  expiresAt  DateTime
+  createdAt  DateTime       @default(now())
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package    ProductPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, packageId])
+  @@index([userId, expiresAt])
+}
+
+model Payment {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    PaymentProvider  @default(mock)
+  kind        PaymentKind
+  productId   String           // plan id ("basic"/"premium") or package id
+  amountUSD   Decimal          @db.Decimal(10, 2)
+  amountKRW   Int?
+  currency    String           @default("USD")
+  status      PaymentStatus    @default(pending)
+  providerRef String?          // paddle subscription id / toss payment key
+  meta        Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([providerRef])
+}
+
+// ─── Engagement ────────────────────────────────────────────────────────────
+
+model Achievement {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  name         String
+  description  String
+  icon         String?
+  threshold    Int               @default(1)
+  users        UserAchievement[]
+}
+
+model UserAchievement {
+  id            String       @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime     @default(now())
+  progress      Int          @default(0)
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement  @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationKind
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  wordId    String
+  note      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word      Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId])
+}
+
+model Collection {
+  id          String             @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  words       CollectionWord[]
+
+  @@index([userId])
+}
+
+model CollectionWord {
+  id           String     @id @default(cuid())
+  collectionId String
+  wordId       String
+  position     Int        @default(0)
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  word         Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, wordId])
+}
+
+model Deck {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  exam       ExamCategory?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  words      DeckWord[]
+}
+
+model DeckWord {
+  id       String @id @default(cuid())
+  deckId   String
+  wordId   String
+  position Int    @default(0)
+
+  deck     Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  word     Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, wordId])
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  userId        String
+  dailyCards    Int      @default(20)
+  weeklyReviews Int      @default(140)
+  targetExam    ExamCategory?
+  targetDate    DateTime?
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model League {
+  id           String              @id @default(cuid())
+  slug         String              @unique
+  name         String
+  tier         Int                 @default(1)
+  startsAt     DateTime
+  endsAt       DateTime
+  participants LeagueParticipant[]
+}
+
+model LeagueParticipant {
+  id        String   @id @default(cuid())
+  userId    String
+  leagueId  String
+  score     Int      @default(0)
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leagueId])
+}
+
+model Quiz {
+  id          String    @id @default(cuid())
+  userId      String
+  exam        ExamCategory?
+  score       Int       @default(0)
+  total       Int       @default(0)
+  payload     Json?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Chat {
+  id         String        @id @default(cuid())
+  userId     String
+  topic      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages   ChatMessage[]
+
+  @@index([userId, createdAt])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  chatId     String
+  role       String   // "user" | "assistant" | "system"
+  content    String
+  createdAt  DateTime @default(now())
+
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
+}
