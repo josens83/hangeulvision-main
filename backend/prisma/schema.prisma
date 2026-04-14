@@ -10,7 +10,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime queries go through the Supabase Transaction pooler (port 6543).
+  url       = env("DATABASE_URL")
+  // `prisma migrate` / `prisma db push` / introspection need a direct
+  // connection — the Transaction pooler doesn't support the prepared
+  // statements and advisory locks Prisma uses during migrations.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ─────────────────────────────────────────────────────────────────

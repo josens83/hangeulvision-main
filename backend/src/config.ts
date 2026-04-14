@@ -21,6 +21,10 @@ export const config = {
     .map((s) => s.trim())
     .filter(Boolean),
   databaseUrl: process.env.DATABASE_URL ?? "",
+  // Direct (non-pooled) connection used exclusively by `prisma migrate`.
+  // Prisma CLI reads `DIRECT_URL` itself via the datasource block — this
+  // field is just here so server code can surface it in diagnostics.
+  directUrl: process.env.DIRECT_URL ?? "",
   jwtSecret: required("JWT_SECRET", "dev-only-insecure-secret"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "30d",

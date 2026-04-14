@@ -8,11 +8,16 @@ VocaVision AI backend so both services share ops playbooks and CI/CD.
 
 ```bash
 cd backend
-cp .env.example .env        # fill in DATABASE_URL etc.
+cp .env.example .env        # fill in DATABASE_URL, DIRECT_URL, JWT_SECRET
 npm install
 npx prisma generate
+npm run prisma:migrate:dev -- --name init   # first-time only
 npm run dev                 # http://localhost:4000/health
 ```
+
+See **[`docs/ENV_SETUP.md`](docs/ENV_SETUP.md)** for the full Supabase
+connection-string walk-through (pooler vs direct URL, port 6543 vs 5432,
+URL-encoding the password, troubleshooting).
 
 ## Commands
 
