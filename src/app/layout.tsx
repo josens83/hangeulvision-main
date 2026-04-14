@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { BottomTabBar } from "@/components/BottomTabBar";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hangeulvision.app"),
@@ -54,8 +55,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen antialiased">
         <Navbar />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:pt-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:pb-24 sm:pt-10">
+          {children}
+        </main>
         <Footer />
+        <BottomTabBar />
         <InstallPrompt />
         <script
           dangerouslySetInnerHTML={{

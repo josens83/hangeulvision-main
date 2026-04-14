@@ -1,18 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import type { Hanja, Word } from "@/lib/types";
+import type { Word } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import type { Grade } from "@/lib/srs";
+import { HanjaBreakdown } from "./HanjaBreakdown";
 
 export function WordStudy({ word }: { word: Word }) {
   const gradeWord = useStore((s) => s.gradeWord);
   const entry = useStore((s) => s.getEntry(word.id));
   const user = useStore((s) => s.currentUser());
   const [showGrading, setShowGrading] = useState(false);
-
-  const hanjaRoots = Array.isArray(word.etymology?.rootWords) && typeof word.etymology!.rootWords[0] === "object"
-    ? (word.etymology!.rootWords as Hanja[])
-    : null;
 
   return (
     <article className="mt-4 space-y-6">
@@ -51,25 +48,38 @@ export function WordStudy({ word }: { word: Word }) {
         ) : null}
       </div>
 
-      {hanjaRoots ? (
+      {word.etymology ? (
         <section className="card p-6">
           <SectionTitle emoji="🀄️">Hanja / Etymology</SectionTitle>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {hanjaRoots.map((h, i) => (
-              <div key={i} className="rounded-2xl border border-brand-200 bg-white p-4 text-center">
-                <div className="hanja text-4xl">{h.char}</div>
-                <div className="mt-1 text-xs text-ink-500">{h.meaning} · {h.sound}</div>
-              </div>
-            ))}
+          <div className="mt-4">
+            <HanjaBreakdown etymology={word.etymology} word={word.word} />
           </div>
-          {word.etymology?.originEn ? (
-            <p className="mt-4 text-sm text-ink-700">{word.etymology.originEn}</p>
-          ) : null}
         </section>
-      ) : word.etymology ? (
+      ) : null}
+
+      {word.morphology ? (
         <section className="card p-6">
-          <SectionTitle emoji="🌱">Etymology</SectionTitle>
-          <p className="mt-2 text-sm text-ink-700">{word.etymology.originEn ?? word.etymology.origin}</p>
+          <SectionTitle emoji="🧬">Morphology</SectionTitle>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            {word.morphology.prefix ? (
+              <span className="rounded-xl bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-700">
+                prefix · {word.morphology.prefix}
+              </span>
+            ) : null}
+            {word.morphology.root ? (
+              <span className="rounded-xl bg-brand-50 px-3 py-1.5 font-semibold text-brand-700">
+                root · {word.morphology.root}
+              </span>
+            ) : null}
+            {word.morphology.suffix ? (
+              <span className="rounded-xl bg-rose-50 px-3 py-1.5 font-semibold text-rose-700">
+                suffix · {word.morphology.suffix}
+              </span>
+            ) : null}
+          </div>
+          {word.morphology.note ? (
+            <p className="mt-3 text-xs text-ink-500">{word.morphology.note}</p>
+          ) : null}
         </section>
       ) : null}
 
