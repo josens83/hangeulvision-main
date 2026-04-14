@@ -392,6 +392,316 @@ export const SEED_WORDS: Word[] = [
     synonyms: ["PC", "전산기"],
     tags: ["technology", "loanword"],
   },
+
+  // ─── TOPIK I · Level 1 pack (2026-04 addition) ───────────────────────────
+  // Ten high-frequency L1 words covering food, places, time, family and
+  // basic motion / state verbs. Bulk catalog (2,000+ words) still lands via
+  // the Claude + Stability AI pipeline — this pack is just enough to make
+  // every dashboard category render useful content today.
+  {
+    id: "w_bap",
+    word: "밥",
+    romanization: "bap",
+    ipa: "/pa̠p̚/",
+    definitionEn: "cooked rice; a meal",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "BAP → 'BOP' your spoon on the bowl of rice before you eat.",
+      syllables: ["밥"],
+    },
+    etymology: {
+      origin: "밥",
+      language: "Native",
+      rootWords: ["Native Korean root — attested in 15th-century Hangul texts."],
+      originEn:
+        "Native Korean; metonymically means 'a meal' because rice is the default staple.",
+    },
+    examples: [
+      { sentence: "밥 먹었어요?", translation: "Have you eaten? (a common greeting).", highlight: "밥" },
+      { sentence: "저는 매일 밥을 먹어요.", translation: "I eat rice every day.", highlight: "밥" },
+    ],
+    collocations: [
+      { phrase: "밥을 먹다", translation: "to eat a meal" },
+      { phrase: "밥을 짓다", translation: "to cook rice" },
+    ],
+    synonyms: ["식사", "진지"],
+    tags: ["food", "daily"],
+  },
+  {
+    id: "w_mul",
+    word: "물",
+    romanization: "mul",
+    ipa: "/mul/",
+    definitionEn: "water",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "MUL → 'MOOOL'-ticup glass of water. Drink it all.",
+      syllables: ["물"],
+    },
+    etymology: {
+      origin: "물",
+      language: "Native",
+      rootWords: ["Native Korean; 'mur' in older Korean."],
+      originEn: "One of the basic Native Korean nouns — no Hanja root.",
+    },
+    examples: [
+      { sentence: "물 한 잔 주세요.", translation: "Please give me a glass of water.", highlight: "물" },
+      { sentence: "물이 차가워요.", translation: "The water is cold.", highlight: "물" },
+    ],
+    collocations: [
+      { phrase: "물을 마시다", translation: "to drink water" },
+      { phrase: "찬물 / 따뜻한 물", translation: "cold water / warm water" },
+    ],
+    tags: ["food", "daily"],
+  },
+  {
+    id: "w_byeongwon",
+    word: "병원",
+    romanization: "byeongwon",
+    ipa: "/pjʌ̹ŋ.wʌ̹n/",
+    definitionEn: "hospital; clinic",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "BYEONG-WON → 'BEING WON over' back to health at the hospital.",
+      syllables: ["병", "원"],
+    },
+    etymology: {
+      origin: "病院",
+      language: "Sino-Korean",
+      rootWords: [
+        { char: "病", meaning: "illness", sound: "병" },
+        { char: "院", meaning: "institution", sound: "원" },
+      ],
+      originEn: "病 (illness) + 院 (institution) → 'an institution for illness'.",
+    },
+    examples: [
+      { sentence: "병원에 가야 해요.", translation: "I have to go to the hospital.", highlight: "병원" },
+      { sentence: "병원은 지하철역 옆에 있어요.", translation: "The hospital is next to the subway station.", highlight: "병원" },
+    ],
+    collocations: [
+      { phrase: "병원에 가다", translation: "to go to the hospital" },
+      { phrase: "종합 병원", translation: "general hospital" },
+    ],
+    tags: ["place", "health"],
+  },
+  {
+    id: "w_bus",
+    word: "버스",
+    romanization: "beoseu",
+    ipa: "/pʌ̹.sɯ/",
+    definitionEn: "bus",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "BEO-SEU → just say 'bus' with a Korean vowel. Same word.",
+      syllables: ["버", "스"],
+    },
+    etymology: {
+      origin: "bus (English)",
+      language: "Loanword",
+      rootWords: ["영어: bus"],
+      originEn: "Direct transliteration of the English word 'bus'.",
+    },
+    examples: [
+      { sentence: "버스를 타요.", translation: "I take the bus.", highlight: "버스" },
+      { sentence: "버스가 늦게 와요.", translation: "The bus is coming late.", highlight: "버스" },
+    ],
+    collocations: [
+      { phrase: "버스를 타다", translation: "to take the bus" },
+      { phrase: "버스 정류장", translation: "bus stop" },
+    ],
+    tags: ["transport", "loanword"],
+  },
+  {
+    id: "w_oneul",
+    word: "오늘",
+    romanization: "oneul",
+    ipa: "/o̞.nɯɭ/",
+    definitionEn: "today",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "O-NEUL → 'OH, KNEEL' — today, right now, you bow to begin.",
+      syllables: ["오", "늘"],
+    },
+    etymology: {
+      origin: "오늘",
+      language: "Native",
+      rootWords: ["Native Korean; the matching set is 어제 (yesterday) / 내일 (tomorrow)."],
+      originEn: "Native Korean word. No Hanja root.",
+    },
+    examples: [
+      { sentence: "오늘 날씨가 좋아요.", translation: "The weather is nice today.", highlight: "오늘" },
+      { sentence: "오늘은 월요일이에요.", translation: "Today is Monday.", highlight: "오늘" },
+    ],
+    collocations: [
+      { phrase: "오늘 아침", translation: "this morning" },
+      { phrase: "오늘 밤", translation: "tonight" },
+    ],
+    antonyms: ["어제", "내일"],
+    tags: ["time", "daily"],
+  },
+  {
+    id: "w_eomeoni",
+    word: "어머니",
+    romanization: "eomeoni",
+    ipa: "/ʌ̹.mʌ̹.ni/",
+    definitionEn: "mother",
+    partOfSpeech: "NOUN",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "EO-MEO-NI → 'UH, MA, KNEE' — tug at mother's knee.",
+      syllables: ["어", "머", "니"],
+    },
+    etymology: {
+      origin: "어머니",
+      language: "Native",
+      rootWords: ["Native Korean; casual form 엄마 is the toddler's first word."],
+      originEn: "Pure Native Korean. The formal register is 어머님.",
+    },
+    examples: [
+      { sentence: "저는 어머니를 사랑해요.", translation: "I love my mother.", highlight: "어머니" },
+      { sentence: "어머니가 요리를 잘하세요.", translation: "My mother cooks well.", highlight: "어머니" },
+    ],
+    collocations: [
+      { phrase: "어머니의 사랑", translation: "a mother's love" },
+      { phrase: "어머님 (honorific)", translation: "mother (honorific)" },
+    ],
+    synonyms: ["엄마", "모친"],
+    antonyms: ["아버지"],
+    tags: ["family", "daily"],
+  },
+  {
+    id: "w_gada",
+    word: "가다",
+    romanization: "gada",
+    ipa: "/ka̠.da̠/",
+    definitionEn: "to go",
+    partOfSpeech: "VERB",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "GA-DA → 'GO, DA!' — the imperative to get going.",
+      syllables: ["가", "다"],
+    },
+    etymology: {
+      origin: "가다",
+      language: "Native",
+      rootWords: ["Native Korean; one of the most fundamental motion verbs."],
+      originEn: "Native Korean verb. Irregular only in the honorific (가시다).",
+    },
+    examples: [
+      { sentence: "학교에 가요.", translation: "I'm going to school.", highlight: "가" },
+      { sentence: "어디에 가세요?", translation: "Where are you going?", highlight: "가" },
+    ],
+    collocations: [
+      { phrase: "집에 가다", translation: "to go home" },
+      { phrase: "놀러 가다", translation: "to go out to play / hang out" },
+    ],
+    antonyms: ["오다"],
+    tags: ["verb", "motion"],
+  },
+  {
+    id: "w_oda",
+    word: "오다",
+    romanization: "oda",
+    ipa: "/o̞.da̠/",
+    definitionEn: "to come",
+    partOfSpeech: "VERB",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "O-DA → 'OH, DA!' — surprise arrival of someone.",
+      syllables: ["오", "다"],
+    },
+    etymology: {
+      origin: "오다",
+      language: "Native",
+      rootWords: ["Native Korean. Pairs with 가다 (to go) as motion opposites."],
+      originEn: "Native Korean verb. Irregular in the connective form 와요.",
+    },
+    examples: [
+      { sentence: "친구가 집에 와요.", translation: "A friend is coming to my house.", highlight: "와" },
+      { sentence: "비가 와요.", translation: "It's raining. (literally 'rain is coming').", highlight: "와" },
+    ],
+    collocations: [
+      { phrase: "집에 오다", translation: "to come home" },
+      { phrase: "비가 오다", translation: "to rain" },
+    ],
+    antonyms: ["가다"],
+    tags: ["verb", "motion"],
+  },
+  {
+    id: "w_deopda",
+    word: "덥다",
+    romanization: "deopda",
+    ipa: "/tʌ̹p̚.t͈a̠/",
+    definitionEn: "to be hot (weather / a person feeling hot)",
+    partOfSpeech: "ADJ",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "DEOP-DA → 'DUB DA fan on' — it's so hot.",
+      syllables: ["덥", "다"],
+    },
+    etymology: {
+      origin: "덥다",
+      language: "Native",
+      rootWords: ["Native Korean adjective (irregular ㅂ conjugation: 더워요)."],
+      originEn:
+        "Native Korean. Describes warm weather or a person's perceived heat, not physical hotness of objects (that's 뜨겁다).",
+    },
+    examples: [
+      { sentence: "오늘 너무 더워요.", translation: "It's so hot today.", highlight: "더워" },
+      { sentence: "여름에는 덥습니다.", translation: "It is hot in summer.", highlight: "덥" },
+    ],
+    collocations: [
+      { phrase: "날씨가 덥다", translation: "the weather is hot" },
+      { phrase: "더운 여름", translation: "a hot summer" },
+    ],
+    antonyms: ["춥다"],
+    tags: ["weather", "adjective"],
+  },
+  {
+    id: "w_ssada",
+    word: "싸다",
+    romanization: "ssada",
+    ipa: "/s͈a̠.da̠/",
+    definitionEn: "to be cheap; inexpensive",
+    partOfSpeech: "ADJ",
+    level: 1,
+    exam: "TOPIK_I",
+    mnemonic: {
+      englishHint: "SSA-DA → 'SA-le DA price' — cheap.",
+      syllables: ["싸", "다"],
+    },
+    etymology: {
+      origin: "싸다",
+      language: "Native",
+      rootWords: ["Native Korean adjective."],
+      originEn:
+        "Native Korean. Note: a separate verb 싸다 means 'to wrap' — context and particle distinguish them.",
+    },
+    examples: [
+      { sentence: "이 가방은 싸요.", translation: "This bag is cheap.", highlight: "싸" },
+      { sentence: "시장이 백화점보다 더 싸요.", translation: "The market is cheaper than the department store.", highlight: "싸" },
+    ],
+    collocations: [
+      { phrase: "값이 싸다", translation: "the price is cheap" },
+      { phrase: "싼 가격", translation: "a low price" },
+    ],
+    antonyms: ["비싸다"],
+    tags: ["shopping", "adjective"],
+  },
 ];
 
 export function findWord(id: string): Word | undefined {
