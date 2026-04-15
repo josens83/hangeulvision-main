@@ -9,6 +9,7 @@ progressRouter.use(authRequired);
 
 progressRouter.get("/", asyncHandler(c.list));
 progressRouter.get("/summary", asyncHandler(c.summary));
+progressRouter.get("/stats", asyncHandler(c.summary)); // alias
 progressRouter.get("/:wordId", asyncHandler(c.getOne));
 progressRouter.post("/:wordId/grade", asyncHandler(c.grade));
 progressRouter.delete("/:wordId", asyncHandler(c.reset));
