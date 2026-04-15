@@ -7,6 +7,7 @@ import { EXAMS } from "@/lib/exams";
 import { hasExamAccess, planById } from "@/lib/pricing";
 import { SEED_WORDS } from "@/lib/words.seed";
 import { stableQuery } from "@/lib/stableQuery";
+import { useProgressStats } from "@/lib/useProgressStats";
 
 interface DashboardStats {
   totalSeen: number;
@@ -25,8 +26,8 @@ export default function DashboardPage() {
     if (!user) router.replace("/signin");
   }, [user, router]);
 
-  // stableQuery — reduces dashboard re-renders the VocaVision way.
-  const stats = stableQuery<
+  // Local stableQuery — instant render from persisted Zustand state.
+  const localStats = stableQuery<
     [string | null, Record<string, Record<string, any>>, typeof useStore extends unknown ? any : any],
     DashboardStats
   >(
@@ -54,6 +55,21 @@ export default function DashboardPage() {
     },
     { totalSeen: 0, mastered: 0, due: 0, streakDays: 0, tier: "free", recent: [] },
   );
+
+  // Authoritative stats from /progress/stats — swaps in when it resolves,
+  // falls back to the local computation while the API is in-flight or down.
+  const { stats: apiStats } = useProgressStats();
+
+  const stats: DashboardStats = apiStats
+    ? {
+        totalSeen: apiStats.seen,
+        mastered: apiStats.mastered,
+        due: apiStats.dueCount,
+        streakDays: apiStats.streakDays,
+        tier: localStats.tier,
+        recent: localStats.recent,
+      }
+    : localStats;
 
   if (!user) return null;
   const plan = planById(user.tier);

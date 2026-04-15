@@ -9,6 +9,7 @@ export default function SignUpPage() {
   const signUp = useStore((s) => s.signUp);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="mx-auto max-w-md py-10">
@@ -16,9 +17,13 @@ export default function SignUpPage() {
       <p className="mt-1 text-sm text-ink-500">800 TOPIK I words — no card, no catch.</p>
       <form
         className="card mt-6 space-y-3 p-6"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
-          const res = signUp(form.email, form.name, form.password);
+          if (submitting) return;
+          setSubmitting(true);
+          setError(null);
+          const res = await signUp(form.email, form.name, form.password);
+          setSubmitting(false);
           if (!res.ok) setError(res.error ?? "Could not sign up");
           else router.push("/dashboard");
         }}
@@ -27,8 +32,8 @@ export default function SignUpPage() {
         <Field label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
         <Field label="Password" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
         {error ? <div className="text-sm text-rose-600">{error}</div> : null}
-        <button className="btn-primary w-full" type="submit">
-          Create account
+        <button className="btn-primary w-full" type="submit" disabled={submitting}>
+          {submitting ? "Creating account…" : "Create account"}
         </button>
         <div className="text-center text-xs text-ink-500">
           Already have an account?{" "}

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { BottomTabBar } from "@/components/BottomTabBar";
+import { AuthBoot } from "@/components/AuthBoot";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hangeulvision.app"),
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
+        <AuthBoot />
         <Navbar />
         <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:pb-24 sm:pt-10">
           {children}

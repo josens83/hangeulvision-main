@@ -20,8 +20,8 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useStudyBootstrap } from "@/lib/useStudyBootstrap";
 import { useStudyQueue } from "@/lib/useStudyQueue";
+import { useWordLibrary } from "@/lib/useWordLibrary";
 import { LibrarySkeleton, StatsSkeleton, StudySkeleton } from "@/components/StudySkeleton";
-import { SEED_WORDS } from "@/lib/words.seed";
 import type { Word } from "@/lib/types";
 
 // Stats panel is not on the critical path — lazy-load it.
@@ -37,6 +37,11 @@ export default function LearnPage() {
   const { queue, prefetched } = useStudyQueue(bootstrap?.firstWord, {
     enabled: !!bootstrap?.firstWord,
   });
+
+  // Library fetch runs in parallel with the bootstrap — renders seed
+  // immediately, swaps in the API payload once /words responds.
+  const { words: library, total: libraryTotal, source: librarySource } =
+    useWordLibrary({ exam: "TOPIK_I", page: 1, limit: 50 });
 
   if (isLoading || !bootstrap) {
     return (
@@ -82,20 +87,23 @@ export default function LearnPage() {
         </section>
       ) : null}
 
-      {/* Full library — renders from the sync seed, after critical path */}
+      {/* Full library — seed on first paint, API words swap in when ready */}
       <section>
         <div className="mb-3 flex items-end justify-between">
           <div>
             <h1 className="text-2xl font-bold text-ink-900">Word library</h1>
             <p className="text-sm text-ink-500">
-              {SEED_WORDS.length} seed words · bulk catalog from the content pipeline.
+              {libraryTotal} {librarySource === "api" ? "words" : "seed words"}
+              {librarySource === "seed"
+                ? " · fetching catalog…"
+                : " · bulk catalog served from the API."}
             </p>
           </div>
           <Link href="/review" className="btn-primary">
             Start session
           </Link>
         </div>
-        <LibraryGrid />
+        <LibraryGrid words={library} />
       </section>
     </div>
   );
@@ -178,10 +186,10 @@ function WordMini({ word }: { word: Word }) {
   );
 }
 
-function LibraryGrid() {
+function LibraryGrid({ words }: { words: Word[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {SEED_WORDS.map((w) => (
+      {words.map((w) => (
         <Link
           href={`/learn/${w.id}`}
           key={w.id}
