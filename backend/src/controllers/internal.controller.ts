@@ -294,7 +294,22 @@ function mapClaudeError(err: unknown): { status: number; body: Record<string, un
   };
 }
 
-// ─── Endpoint: POST /internal/generate-words ───────────────────────────────
+/**
+ * Picks the input source for the two endpoints:
+ *   • GET  → `req.query` (browser-paste pattern, `?key=…&exam=…&…`)
+ *   • POST → `req.body`  (operator tools and CI scripts)
+ * The `key` query param is stripped — it's only used by `internalOnly`.
+ */
+function inputFor(req: Request): Record<string, unknown> {
+  if (req.method === "GET") {
+    const q = { ...(req.query as Record<string, unknown>) };
+    delete q.key;
+    return q;
+  }
+  return (req.body as Record<string, unknown>) ?? {};
+}
+
+// ─── Endpoint: GET / POST /internal/generate-words ─────────────────────────
 
 export async function generateWords(req: Request, res: Response): Promise<void> {
   if (!hasClaudeCredentials()) {
@@ -304,7 +319,7 @@ export async function generateWords(req: Request, res: Response): Promise<void> 
 
   let body: z.infer<typeof generateWordsSchema>;
   try {
-    body = generateWordsSchema.parse(req.body ?? {});
+    body = generateWordsSchema.parse(inputFor(req));
   } catch (err) {
     throw badRequest("Invalid request body.", err);
   }
@@ -323,7 +338,7 @@ export async function generateWords(req: Request, res: Response): Promise<void> 
   }
 }
 
-// ─── Endpoint: POST /internal/generate-words-batch ─────────────────────────
+// ─── Endpoint: GET / POST /internal/generate-words-batch ───────────────────
 
 export async function generateWordsBatch(req: Request, res: Response): Promise<void> {
   if (!hasClaudeCredentials()) {
@@ -333,7 +348,7 @@ export async function generateWordsBatch(req: Request, res: Response): Promise<v
 
   let body: z.infer<typeof generateBatchSchema>;
   try {
-    body = generateBatchSchema.parse(req.body ?? {});
+    body = generateBatchSchema.parse(inputFor(req));
   } catch (err) {
     throw badRequest("Invalid request body.", err);
   }

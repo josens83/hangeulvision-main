@@ -9,8 +9,13 @@ export const internalRouter = Router();
 internalRouter.use(internalOnly);
 
 // Claude content generation.
-// New endpoints (preferred, schema-explicit names):
+// New endpoints (preferred, schema-explicit names).
+// Both GET and POST work — GET reads params from the query string for
+// browser-paste convenience; POST reads from JSON body. `internalOnly`
+// accepts the key from either the X-Internal-Key header or ?key=… query.
+internalRouter.get("/generate-words", asyncHandler(c.generateWords));
 internalRouter.post("/generate-words", asyncHandler(c.generateWords));
+internalRouter.get("/generate-words-batch", asyncHandler(c.generateWordsBatch));
 internalRouter.post("/generate-words-batch", asyncHandler(c.generateWordsBatch));
 // Legacy aliases kept for VocaVision-parity tooling:
 internalRouter.post("/generate-content-continuous", asyncHandler(c.generateContentContinuous));

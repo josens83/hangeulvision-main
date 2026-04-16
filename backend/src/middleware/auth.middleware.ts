@@ -57,10 +57,27 @@ export function requireRole(...roles: AuthTokenPayload["role"][]) {
   };
 }
 
-/** Protects /internal/* endpoints hit by the content/image pipelines. */
+/**
+ * Protects /internal/* endpoints hit by the content / image pipelines.
+ *
+ * Accepts the key from either:
+ *   • `X-Internal-Key` header  — preferred; used by the POST body flow.
+ *   • `?key=…` query param     — convenience for GET URLs that an operator
+ *                                 can paste into a browser address bar.
+ *
+ * Note: query-param auth puts the key in server logs, browser history, and
+ * Referer headers. Only acceptable because INTERNAL_API_KEY is a pipeline
+ * secret with no user-level data behind it, and the pattern matches the
+ * existing VocaVision ops tooling.
+ */
 export function internalOnly(req: Request, _res: Response, next: NextFunction) {
-  const key = req.headers["x-internal-key"];
-  if (!config.internalApiKey || key !== config.internalApiKey) {
+  if (!config.internalApiKey) throw forbidden("Internal API key not configured.");
+
+  const headerKey = req.headers["x-internal-key"];
+  const queryKey = typeof req.query?.key === "string" ? req.query.key : undefined;
+  const provided = headerKey ?? queryKey;
+
+  if (provided !== config.internalApiKey) {
     throw forbidden("Invalid internal API key");
   }
   next();
