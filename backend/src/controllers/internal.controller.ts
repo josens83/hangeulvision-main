@@ -17,6 +17,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { OriginLanguage, PartOfSpeech, Prisma } from "@prisma/client";
+import { Prisma as PrismaNS } from "@prisma/client";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma";
@@ -183,6 +184,21 @@ interface BatchReport {
   errors: Array<{ word?: string; error: string }>;
   words: Array<{ id: string; word: string; partOfSpeech: string }>;
   usage: { input: number; output: number; cacheRead: number };
+  /** Per-word disposition log, useful for debugging skip/error counts. */
+  log: Array<{ word: string; status: "created" | "skipped" | "error"; reason?: string }>;
+}
+
+/**
+ * Normalises a Korean word for dedup comparisons.
+ *   • Trim leading/trailing whitespace.
+ *   • NFC normalise — Claude and the database can disagree on whether
+ *     `한` is the precomposed syllable U+D55C or the decomposed sequence
+ *     ᄒ + ᅡ + ᆫ. NFC collapses both to the same byte sequence.
+ *   • Strip the special "·" middle dot some classical-style entries
+ *     emit between syllables (we never want it in storage).
+ */
+function normalizeWord(w: string): string {
+  return w.normalize("NFC").trim().replace(/·/g, "");
 }
 
 async function runOneBatch(
@@ -191,14 +207,27 @@ async function runOneBatch(
   count: number,
   category: string | undefined,
 ): Promise<BatchReport> {
-  // Pull the words already in the library so the model doesn't re-generate
-  // dictionary basics. Cap the list — the prompt slices to 400 anyway.
+  // ─── existing-words fetch ────────────────────────────────────────────────
+  // Pull every active word in this exam so the model has a "do not repeat"
+  // list AND so we can dedupe its responses in O(1) afterwards.
+  // Take 1000 — Word table tops out around 13K when fully populated, and the
+  // dictionary basics we need to block (밥, 물, 학교, …) are always within
+  // the lowest few hundred. Prompt-side slicing inside the service still
+  // caps at 400 to protect the prefix cache.
   const existingRows = await prisma.word.findMany({
     where: { exam, active: true },
     select: { word: true },
-    take: 500,
+    take: 1000,
   });
   const existingWords = existingRows.map((r) => r.word);
+  const existingSet = new Set(existingWords.map(normalizeWord));
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[generate-words] exam=${exam} level=${level} count=${count} category=${category ?? "-"}` +
+      ` · existingFetched=${existingWords.length} sentToClaude=${Math.min(existingWords.length, 400)}` +
+      ` · sample=[${existingWords.slice(0, 8).join(", ")}${existingWords.length > 8 ? ", …" : ""}]`,
+  );
 
   const gen = await generateWordsWithClaude({
     exam,
@@ -208,27 +237,53 @@ async function runOneBatch(
     existingWords,
   });
 
+  // eslint-disable-next-line no-console
+  console.log(
+    `[generate-words] claude returned ${gen.words.length} words ` +
+      `· tokens in=${gen.usage.input} out=${gen.usage.output} cacheRead=${gen.usage.cacheRead}` +
+      ` · returned=[${gen.words.map((w) => w.word).join(", ")}]`,
+  );
+
   const created: BatchReport["words"] = [];
   const errors: BatchReport["errors"] = [];
+  const log: BatchReport["log"] = [];
   let skipped = 0;
 
+  // Track words created during *this* batch so a duplicate within the
+  // Claude response itself (rare but possible) gets caught before we hit
+  // the database.
+  const createdThisBatch = new Set<string>();
+
   for (const g of gen.words) {
+    if (!g.word || typeof g.word !== "string") {
+      errors.push({ error: "missing_word_field" });
+      log.push({ word: String(g.word ?? ""), status: "error", reason: "missing_word_field" });
+      continue;
+    }
+
+    const norm = normalizeWord(g.word);
+
+    // (a) intra-batch dup
+    if (createdThisBatch.has(norm)) {
+      skipped += 1;
+      log.push({ word: g.word, status: "skipped", reason: "duplicate_in_response" });
+      continue;
+    }
+
+    // (b) dictionary dup — fast in-memory Set lookup, no extra query
+    if (existingSet.has(norm)) {
+      skipped += 1;
+      log.push({ word: g.word, status: "skipped", reason: "already_in_db" });
+      continue;
+    }
+
     const payload = toCreatePayload(g, exam, level, category);
     if (!payload) {
       errors.push({ word: g.word, error: "missing_required_fields" });
+      log.push({ word: g.word, status: "error", reason: "missing_required_fields" });
       continue;
     }
-
-    // Dedupe against the primary (word, partOfSpeech) uniqueness + the looser
-    // "same Korean spelling" check the spec asked for.
-    const dup = await prisma.word.findFirst({
-      where: { word: payload.word },
-      select: { id: true, partOfSpeech: true },
-    });
-    if (dup) {
-      skipped += 1;
-      continue;
-    }
+    payload.word = norm; // store the normalised form
 
     try {
       const record = await prisma.word.create({
@@ -240,13 +295,41 @@ async function runOneBatch(
         word: record.word,
         partOfSpeech: record.partOfSpeech,
       });
+      createdThisBatch.add(norm);
+      existingSet.add(norm); // future loop iterations see this word as known
+      log.push({ word: g.word, status: "created" });
     } catch (err) {
+      // (c) DB-level unique violation — typically a race or a NFC mismatch
+      // we didn't normalise. Treat as skipped, not error: the row exists,
+      // we just lost the in-process race.
+      if (
+        err instanceof PrismaNS.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        skipped += 1;
+        log.push({
+          word: g.word,
+          status: "skipped",
+          reason: `unique_violation(${(err.meta?.target as string[])?.join(",") ?? "unknown"})`,
+        });
+        continue;
+      }
       errors.push({
-        word: payload.word,
+        word: g.word,
         error: err instanceof Error ? err.message : String(err),
+      });
+      log.push({
+        word: g.word,
+        status: "error",
+        reason: err instanceof Error ? err.message : String(err),
       });
     }
   }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[generate-words] result · created=${created.length} skipped=${skipped} errors=${errors.length}`,
+  );
 
   return {
     created: created.length,
@@ -254,6 +337,7 @@ async function runOneBatch(
     errors,
     words: created,
     usage: gen.usage,
+    log,
   };
 }
 
