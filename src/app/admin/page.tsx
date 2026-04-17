@@ -1,111 +1,221 @@
 "use client";
-import Link from "next/link";
-import { useStore } from "@/lib/store";
-import { SEED_WORDS } from "@/lib/words.seed";
-import { EXAMS } from "@/lib/exams";
 
-// MVP admin: read-only view of users, revenue and content inventory.
-// In production this is gated by role and hits the NestJS / Supabase backend.
-export default function AdminPage() {
-  const users = useStore((s) => Object.values(s.users));
-  const payments = useStore((s) => s.payments);
-  const revenue = payments.filter((p) => p.status === "paid").reduce((a, b) => a + b.amountUSD, 0);
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { API_URL } from "@/lib/api";
+
+interface WordCount {
+  total: number;
+  primary: Record<string, number>;
+  secondary: Record<string, number>;
+}
+
+interface GenerateResult {
+  created: number;
+  skipped: number;
+  errors: Array<{ word?: string; error: string }>;
+  words: Array<{ id: string; word: string; partOfSpeech: string }>;
+  log?: Array<{ word: string; status: string; reason?: string }>;
+}
+
+interface RecentWord {
+  id: string;
+  word: string;
+  romanization: string;
+  definitionEn: string;
+  exam: string;
+  level: number;
+  createdAt: string;
+}
+
+export default function AdminDashboard() {
+  const params = useSearchParams();
+  const key = params.get("key") ?? "";
+
+  const [counts, setCounts] = useState<WordCount | null>(null);
+  const [recent, setRecent] = useState<RecentWord[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [genResult, setGenResult] = useState<GenerateResult | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [genExam, setGenExam] = useState("TOPIK_I");
+  const [genLevel, setGenLevel] = useState("1");
+  const [genCount, setGenCount] = useState("10");
+  const [genCategory, setGenCategory] = useState("");
+
+  const load = useCallback(() => {
+    fetch(`${API_URL}/words/count`)
+      .then((r) => r.json())
+      .then(setCounts)
+      .catch(() => {});
+    fetch(`${API_URL}/words?limit=5`)
+      .then((r) => r.json())
+      .then((d) => setRecent(d.words ?? []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(load, [load]);
+
+  const generate = async () => {
+    setGenerating(true);
+    setGenResult(null);
+    setGenError(null);
+    try {
+      const qs = new URLSearchParams({
+        key,
+        exam: genExam,
+        level: genLevel,
+        count: genCount,
+      });
+      if (genCategory) qs.set("category", genCategory);
+      const res = await fetch(`${API_URL}/internal/generate-words?${qs}`);
+      const data = await res.json();
+      if (res.ok) {
+        setGenResult(data);
+        load();
+      } else {
+        setGenError(data.message ?? data.error ?? `HTTP ${res.status}`);
+      }
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Network error");
+    }
+    setGenerating(false);
+  };
 
   return (
-    <div className="space-y-8 py-6">
-      <header>
-        <h1 className="text-3xl font-bold text-ink-900">Admin · Ops dashboard</h1>
-        <p className="text-sm text-ink-500">
-          MVP preview. Role gating, content CRUD and AI pipeline triggers arrive with the NestJS backend.
-        </p>
-      </header>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-bold text-ink-900">Dashboard</h1>
 
+      {/* ─── Word counts ──────────────────────────── */}
       <section className="grid gap-4 sm:grid-cols-4">
-        <Stat label="Users" value={users.length.toString()} />
-        <Stat label="Paid users" value={users.filter((u) => u.tier !== "free").length.toString()} />
-        <Stat label="Revenue (mock)" value={`$${revenue.toFixed(2)}`} />
-        <Stat label="Seed words" value={SEED_WORDS.length.toString()} />
+        <Stat label="Total words" value={counts?.total ?? "—"} />
+        {counts?.primary &&
+          Object.entries(counts.primary).map(([exam, n]) => (
+            <Stat key={exam} label={exam.replace(/_/g, " ")} value={n} />
+          ))}
       </section>
 
+      {/* ─── Generate ─────────────────────────────── */}
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="mb-4 text-lg font-bold text-ink-900">Generate words (Claude pipeline)</h2>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Exam">
+            <select value={genExam} onChange={(e) => setGenExam(e.target.value)} className="inp">
+              {["TOPIK_I", "TOPIK_II_MID", "TOPIK_II_ADV", "KIIP", "EPS_TOPIK"].map((v) => (
+                <option key={v} value={v}>{v.replace(/_/g, " ")}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Level">
+            <select value={genLevel} onChange={(e) => setGenLevel(e.target.value)} className="inp">
+              {[1, 2, 3, 4, 5, 6].map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Count">
+            <input type="number" min={1} max={20} value={genCount} onChange={(e) => setGenCount(e.target.value)} className="inp w-20" />
+          </Field>
+          <Field label="Category (opt)">
+            <input value={genCategory} onChange={(e) => setGenCategory(e.target.value)} placeholder="food, daily, …" className="inp w-32" />
+          </Field>
+          <button onClick={generate} disabled={generating} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
+            {generating ? "Generating…" : `Generate ${genCount} words`}
+          </button>
+        </div>
+
+        {genError && (
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{genError}</div>
+        )}
+        {genResult && (
+          <div className="mt-4 space-y-3">
+            <div className="flex gap-4 text-sm">
+              <Badge color="green">Created: {genResult.created}</Badge>
+              <Badge color="amber">Skipped: {genResult.skipped}</Badge>
+              <Badge color="rose">Errors: {genResult.errors.length}</Badge>
+            </div>
+            {genResult.log && genResult.log.length > 0 && (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b text-left text-ink-500">
+                    <th className="py-1 pr-4">Word</th>
+                    <th className="py-1 pr-4">Status</th>
+                    <th className="py-1">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {genResult.log.map((r, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-1 pr-4 font-medium text-ink-900">{r.word}</td>
+                      <td className="py-1 pr-4">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                          r.status === "created" ? "bg-green-100 text-green-700" :
+                          r.status === "skipped" ? "bg-amber-100 text-amber-700" :
+                          "bg-rose-100 text-rose-700"
+                        }`}>{r.status}</span>
+                      </td>
+                      <td className="py-1 text-ink-500">{r.reason ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ─── Recent words ─────────────────────────── */}
       <section>
-        <h2 className="text-xl font-bold text-ink-900">Users</h2>
-        <div className="card mt-3 overflow-hidden">
+        <h2 className="mb-3 text-lg font-bold text-ink-900">Recent words</h2>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-ink-500">
+            <thead className="border-b bg-gray-50 text-left text-xs uppercase text-ink-500">
               <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Tier</th>
-                <th className="px-4 py-2">Purchases</th>
-                <th className="px-4 py-2">Joined</th>
+                <th className="px-4 py-2">Word</th>
+                <th className="px-4 py-2">Romanization</th>
+                <th className="px-4 py-2">Definition</th>
+                <th className="px-4 py-2">Exam</th>
+                <th className="px-4 py-2">Lvl</th>
               </tr>
             </thead>
             <tbody>
-              {users.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-ink-500">No users yet</td></tr>
-              ) : users.map((u) => (
-                <tr key={u.id} className="border-t border-gray-100">
-                  <td className="px-4 py-2 font-medium text-ink-900">{u.name}</td>
-                  <td className="px-4 py-2 text-ink-500">{u.email}</td>
-                  <td className="px-4 py-2"><span className="chip">{u.tier}</span></td>
-                  <td className="px-4 py-2">{u.purchases.join(", ") || "—"}</td>
-                  <td className="px-4 py-2 text-ink-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+              {recent.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-ink-500">No words yet</td></tr>
+              ) : recent.map((w) => (
+                <tr key={w.id} className="border-b border-gray-100">
+                  <td className="px-4 py-2 font-medium text-ink-900">{w.word}</td>
+                  <td className="px-4 py-2 text-ink-500">{w.romanization}</td>
+                  <td className="px-4 py-2 text-ink-700">{w.definitionEn}</td>
+                  <td className="px-4 py-2"><span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">{w.exam}</span></td>
+                  <td className="px-4 py-2">{w.level}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
-
-      <section>
-        <h2 className="text-xl font-bold text-ink-900">Content inventory</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {EXAMS.map((e) => {
-            const count = SEED_WORDS.filter((w) => w.exam === e.id).length;
-            return (
-              <div key={e.id} className="card p-5">
-                <div className="font-semibold text-ink-900">{e.name}</div>
-                <div className="mt-1 text-sm text-ink-500">{count} seed / {e.wordCount.toLocaleString()} target</div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-full bg-brand-500"
-                    style={{ width: `${Math.min(100, (count / e.wordCount) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="card p-6">
-        <h2 className="text-xl font-bold text-ink-900">Pipelines</h2>
-        <p className="mt-1 text-sm text-ink-500">Hooks into the content generation stack.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {[
-            { k: "Claude · word content", v: "POST /internal/generate-content-continuous" },
-            { k: "Stability AI · concept images", v: "POST /internal/images/concept" },
-            { k: "Stability AI · mnemonic images", v: "POST /internal/images/mnemonic" },
-          ].map((p) => (
-            <div key={p.k} className="rounded-xl border border-dashed border-gray-300 p-4 text-xs">
-              <div className="font-semibold text-ink-900">{p.k}</div>
-              <div className="mt-1 text-ink-500 break-all">{p.v}</div>
-            </div>
-          ))}
-        </div>
-        <Link href="/pricing" className="mt-4 inline-block text-sm font-semibold text-brand-600">
-          Configure pricing →
-        </Link>
-      </section>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="card p-5">
-      <div className="text-sm text-ink-500">{label}</div>
-      <div className="mt-1 text-3xl font-bold text-ink-900">{value}</div>
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="text-xs text-ink-500">{label}</div>
+      <div className="mt-1 text-2xl font-bold text-ink-900">{String(value)}</div>
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-ink-700">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Badge({ color, children }: { color: "green" | "amber" | "rose"; children: React.ReactNode }) {
+  const cls = color === "green" ? "bg-green-100 text-green-700" : color === "amber" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
+  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${cls}`}>{children}</span>;
 }
