@@ -7,31 +7,41 @@ import { BottomTabBar } from "@/components/BottomTabBar";
 import { AuthBoot } from "@/components/AuthBoot";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hangeulvision.app"),
+  metadataBase: new URL("https://hangeulvision-main.vercel.app"),
   title: {
-    default: "HangeulVision AI — Korean, Visualized.",
+    default: "HangeulVision AI — Learn Korean Vocabulary with AI",
     template: "%s · HangeulVision AI",
   },
   description:
-    "AI-powered Korean vocabulary for TOPIK, KIIP and EPS. Every word gets an AI-generated concept image, hanja breakdown, mnemonic and SRS review.",
+    "Master TOPIK vocabulary through AI-generated concept images, Hanja decomposition, English mnemonics, and spaced repetition. Free to start.",
   keywords: [
     "TOPIK",
     "Korean vocabulary",
-    "한국어 단어",
+    "learn Korean",
+    "한국어",
+    "AI",
+    "flashcards",
+    "spaced repetition",
     "KIIP",
     "EPS-TOPIK",
-    "AI Korean",
-    "learn Korean",
+    "Hanja",
   ],
   openGraph: {
     title: "HangeulVision AI — Korean, Visualized.",
     description:
-      "The world's first AI-image-based Korean vocabulary app — built for TOPIK, KIIP and EPS learners.",
-    url: "https://hangeulvision.app",
+      "Every Korean word gets an AI concept image, Hanja breakdown, and mnemonic. Built for TOPIK, KIIP, and EPS learners.",
+    url: "https://hangeulvision-main.vercel.app",
     siteName: "HangeulVision AI",
     locale: "en_US",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "HangeulVision AI — Korean, Visualized.",
+    description:
+      "AI-powered Korean vocabulary learning with Hanja decomposition and mnemonics.",
+  },
+  robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

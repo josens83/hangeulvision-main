@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { EXAMS } from "@/lib/exams";
 import { SEED_WORDS } from "@/lib/words.seed";
 
-const base = "https://hangeulvision.app";
+const base = "https://hangeulvision-main.vercel.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = ["", "/exams", "/learn", "/review", "/pricing", "/signup", "/signin", "/install"].map((p) => ({

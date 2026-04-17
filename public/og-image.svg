@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c8a7b"/>
+      <stop offset="50%" stop-color="#14a896"/>
+      <stop offset="100%" stop-color="#2fc3b0"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Subtle circle decorations -->
+  <circle cx="100" cy="530" r="200" fill="white" opacity="0.05"/>
+  <circle cx="1100" cy="100" r="250" fill="white" opacity="0.05"/>
+
+  <!-- Left content -->
+  <!-- Logo icon -->
+  <rect x="80" y="80" width="56" height="56" rx="14" fill="white" opacity="0.25"/>
+  <text x="108" y="118" text-anchor="middle" font-family="'Noto Serif KR', serif" font-size="32" font-weight="700" fill="white">ㅎ</text>
+
+  <!-- Brand -->
+  <text x="150" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="white" opacity="0.9">HangeulVision AI</text>
+
+  <!-- Main title -->
+  <text x="80" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="800" fill="white">Korean,</text>
+  <text x="80" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="800" fill="white">Visualized.</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="370" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="white" opacity="0.85">AI-generated images · Hanja decomposition</text>
+  <text x="80" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="white" opacity="0.85">English mnemonics · Spaced repetition</text>
+
+  <!-- Tags -->
+  <rect x="80" y="440" width="90" height="32" rx="16" fill="white" opacity="0.2"/>
+  <text x="125" y="461" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="white">TOPIK</text>
+  <rect x="185" y="440" width="70" height="32" rx="16" fill="white" opacity="0.2"/>
+  <text x="220" y="461" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="white">KIIP</text>
+  <rect x="270" y="440" width="65" height="32" rx="16" fill="white" opacity="0.2"/>
+  <text x="303" y="461" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="white">EPS</text>
+
+  <!-- URL -->
+  <text x="80" y="560" font-family="system-ui" font-size="18" fill="white" opacity="0.6">hangeulvision.app</text>
+
+  <!-- Right: Word card -->
+  <rect x="700" y="100" width="420" height="430" rx="24" fill="url(#card)" stroke="#e5e7eb" stroke-width="1"/>
+  <!-- Card header chip -->
+  <rect x="730" y="130" width="130" height="28" rx="14" fill="#effdfb"/>
+  <text x="795" y="149" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="#0c8a7b">TOPIK I · Verb</text>
+
+  <!-- Korean word -->
+  <text x="730" y="220" font-family="'Noto Sans KR', system-ui, sans-serif" font-size="52" font-weight="800" fill="#0b1220">포기하다</text>
+  <text x="730" y="255" font-family="system-ui" font-size="16" fill="#6b7280">pogihada · to give up</text>
+
+  <!-- Hanja box -->
+  <rect x="730" y="280" width="360" height="80" rx="16" fill="#effdfb" stroke="#c8f7f0" stroke-width="1"/>
+  <!-- 抛 -->
+  <text x="775" y="325" text-anchor="middle" font-family="'Noto Serif KR', serif" font-size="36" font-weight="700" fill="#0c8a7b">抛</text>
+  <text x="775" y="348" text-anchor="middle" font-family="system-ui" font-size="10" fill="#6b7280">throw · 포</text>
+  <!-- + -->
+  <text x="830" y="330" text-anchor="middle" font-family="system-ui" font-size="24" fill="#d1d5db">+</text>
+  <!-- 棄 -->
+  <text x="885" y="325" text-anchor="middle" font-family="'Noto Serif KR', serif" font-size="36" font-weight="700" fill="#0c8a7b">棄</text>
+  <text x="885" y="348" text-anchor="middle" font-family="system-ui" font-size="10" fill="#6b7280">discard · 기</text>
+  <!-- arrow -->
+  <text x="940" y="330" text-anchor="middle" font-family="system-ui" font-size="20" fill="#d1d5db">→</text>
+  <!-- result -->
+  <text x="1010" y="330" text-anchor="middle" font-family="'Noto Sans KR', system-ui" font-size="24" font-weight="700" fill="#0c8a7b">포기</text>
+
+  <!-- Mnemonic -->
+  <rect x="730" y="380" width="360" height="55" rx="12" fill="#fffbeb"/>
+  <text x="748" y="405" font-family="system-ui" font-size="12" font-weight="600" fill="#92400e">Mnemonic</text>
+  <text x="748" y="424" font-family="system-ui" font-size="13" fill="#78350f">PO-GI-HA-DA → "POst it and GO!"</text>
+
+  <!-- Example -->
+  <text x="730" y="470" font-family="'Noto Sans KR', system-ui" font-size="15" fill="#374151">저는 꿈을 포기하지 않아요.</text>
+  <text x="730" y="495" font-family="system-ui" font-size="13" fill="#9ca3af">I don't give up on my dreams.</text>
+</svg>
