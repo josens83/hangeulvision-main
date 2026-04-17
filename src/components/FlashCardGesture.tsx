@@ -118,6 +118,7 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
       if (e.key === "ArrowRight") commit("know");
       else if (e.key === "ArrowLeft") commit("dontKnow");
       else if (e.key === "ArrowUp") commit("hard");
+      else if (e.key === "Enter") commit("know");
       else if (e.key === " ") {
         e.preventDefault();
         setFlipped((f) => !f);
@@ -206,7 +207,7 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
         </button>
       </div>
       <div className="mt-2 text-center text-[11px] text-ink-500">
-        Swipe · tap to flip · arrow keys on desktop · tap image to toggle Concept / Mnemonic
+        Swipe · tap to flip · arrow keys / Enter / Space on desktop
       </div>
     </div>
   );
