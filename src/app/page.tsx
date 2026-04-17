@@ -1,175 +1,413 @@
+"use client";
+
 import Link from "next/link";
-import { EXAMS } from "@/lib/exams";
-import { SEED_WORDS } from "@/lib/words.seed";
+import { useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
+import { API_URL } from "@/lib/api";
 
 export default function HomePage() {
-  const featured = SEED_WORDS.slice(0, 3);
+  const [liveWordCount, setLiveWordCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/words/count`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.total) setLiveWordCount(d.total);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
-    <div className="space-y-24">
-      {/* HERO */}
-      <section className="animate-fadeIn pt-4 sm:pt-10">
-        <div className="grid items-center gap-10 sm:grid-cols-2">
+    <div className="space-y-20 sm:space-y-28">
+      {/* ─── HERO ──────────────────────────────────────────────────── */}
+      <section className="animate-fadeIn pt-2 sm:pt-8">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <span className="chip">🇰🇷 World's first AI-image Korean vocabulary</span>
-            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-ink-900 sm:text-5xl">
+            <span className="chip">The world's first AI-image Korean vocabulary</span>
+            <h1 className="mt-4 text-4xl font-bold leading-[1.1] tracking-tight text-ink-900 sm:text-5xl lg:text-6xl">
               Korean,{" "}
               <span className="bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent">
                 Visualized.
               </span>
             </h1>
-            <p className="mt-4 max-w-lg text-lg text-ink-500">
-              Every word gets an AI-generated concept image, hanja breakdown, English mnemonic
-              and spaced-repetition schedule. Built for TOPIK, KIIP and EPS learners.
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-500">
+              Every word gets an AI-generated concept image, hanja breakdown,
+              English mnemonic and spaced-repetition schedule. Built for TOPIK,
+              KIIP and EPS learners worldwide.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/signup" className="btn-primary">Start free — 800 words</Link>
-              <Link href="/learn" className="btn-outline">See a word</Link>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/signup" className="btn-primary text-base px-7 py-3">
+                Start free &rarr; 800 words
+              </Link>
+              <Link href="/learn/w_pogihada" className="btn-outline text-base px-7 py-3">
+                See a word
+              </Link>
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-ink-500">
-              <span>⭐ 13,500+ words planned</span>
-              <span>🌐 TOPIK · KIIP · EPS</span>
-              <span>📱 Web · iOS · Android</span>
+            <div className="mt-7 flex flex-wrap items-center gap-5 text-xs text-ink-500">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-brand-500" />
+                13,500+ words planned
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" />
+                TOPIK &middot; KIIP &middot; EPS
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />
+                Web &middot; iOS &middot; Android
+              </span>
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-brand-200/40 blur-3xl" />
-            <div className="relative mx-auto max-w-sm -rotate-1 transform animate-floaty">
-              <WordPreview />
+          {/* Flashcard preview */}
+          <div className="relative mx-auto w-full max-w-sm lg:max-w-md">
+            <div className="absolute -left-8 -top-8 h-56 w-56 rounded-full bg-brand-200/40 blur-3xl" />
+            <div className="absolute -right-6 bottom-0 h-40 w-40 rounded-full bg-indigo-200/40 blur-3xl" />
+            <div className="relative -rotate-1 animate-floaty">
+              <HeroCard />
             </div>
           </div>
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="grid gap-4 sm:grid-cols-4">
-        {[
-          ["550K+", "TOPIK test takers / yr"],
-          ["16M+", "Korean learners worldwide"],
-          ["87", "Countries with TOPIK"],
-          ["93%", "VocaVision tech reused"],
-        ].map(([v, l]) => (
-          <div key={l} className="card p-5 text-center">
-            <div className="text-2xl font-bold text-brand-600">{v}</div>
-            <div className="mt-1 text-xs text-ink-500">{l}</div>
-          </div>
-        ))}
+      {/* ─── STATS ─────────────────────────────────────────────────── */}
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard>
+          <CountUp end={550} suffix="K+" label="TOPIK test takers / yr" />
+        </StatCard>
+        <StatCard>
+          <CountUp end={16} suffix="M+" label="Korean learners worldwide" />
+        </StatCard>
+        <StatCard>
+          <CountUp
+            end={liveWordCount ?? 70}
+            suffix="+"
+            label="Words ready"
+          />
+        </StatCard>
+        <StatCard>
+          <CountUp end={93} suffix="%" label="VocaVision tech reused" />
+        </StatCard>
       </section>
 
-      {/* FEATURE GRID */}
+      {/* ─── FEATURES ──────────────────────────────────────────────── */}
       <section>
-        <h2 className="text-2xl font-bold text-ink-900">Eight sections per word</h2>
-        <p className="mt-1 text-ink-500">
-          The same rich anatomy VocaVision pioneered for English — now for Korean.
-        </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["🎨", "Concept image", "AI-generated scene that captures the meaning."],
-            ["🪄", "Mnemonic image", "Syllable-based memory hook for English speakers."],
-            ["📝", "4 Example sentences", "Korean with highlighted target and English gloss."],
-            ["🤝", "Collocations", "Natural phrases like 약속을 지키다 or 꿈을 포기하다."],
-            ["🀄️", "Hanja / Etymology", "Breakdown for 60%+ of Sino-Korean vocabulary."],
-            ["🧬", "Morphology", "Prefix + root + suffix, verb/adjective analysis."],
-            ["🔁", "Synonyms / Antonyms", "Related words with usage notes."],
-            ["🔊", "Pronunciation", "IPA + romanization + native TTS audio."],
-          ].map(([emoji, title, desc]) => (
-            <div key={title} className="card p-5">
-              <div className="text-2xl">{emoji}</div>
-              <div className="mt-3 font-semibold text-ink-900">{title}</div>
-              <div className="mt-1 text-sm text-ink-500">{desc}</div>
-            </div>
-          ))}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-ink-900">
+            Three pillars of <span className="text-brand-600">visual learning</span>
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-ink-500">
+            The same methodology VocaVision proved for English vocabulary — now
+            adapted for Korean&rsquo;s unique writing system.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          <FeatureCard
+            icon={<HanjaIcon />}
+            title="漢字 Decomposition"
+            body="60%+ of Korean vocabulary comes from Sino-Korean roots. We break
+              each hanja compound into its component characters with meaning and
+              reading so you grasp etymology at a glance."
+          />
+          <FeatureCard
+            icon={<MnemonicIcon />}
+            title="AI Mnemonics"
+            body="Every word gets a syllable-based English memory hook.
+              PO-GI-HA-DA → &lsquo;POst it and GO, HA! Done Already.&rsquo;
+              Generated by Claude, verified by native speakers."
+          />
+          <FeatureCard
+            icon={<SrsIcon />}
+            title="SM-2 Spaced Repetition"
+            body="The same SuperMemo-2 algorithm that powers Anki — grade each
+              card 0-5, and the schedule adapts. Cards you know well appear
+              less often; cards you struggle with come back sooner."
+          />
         </div>
       </section>
 
-      {/* FEATURED WORDS */}
+      {/* ─── EXAM CATALOG ──────────────────────────────────────────── */}
       <section>
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-ink-900">Sample from TOPIK I</h2>
-            <p className="text-ink-500 text-sm">The first three words — free for every learner.</p>
-          </div>
-          <Link href="/learn" className="btn-ghost">Browse all →</Link>
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-ink-900">Built for every Korean exam</h2>
+          <p className="mx-auto mt-2 max-w-lg text-ink-500">
+            Vocabulary sets aligned to official exam syllabi — not random word lists.
+          </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {featured.map((w) => (
-            <Link href={`/learn/${w.id}`} key={w.id} className="card block p-5 transition hover:shadow-pop">
-              <div className="chip mb-3">{w.exam.replace("_", " ")} · L{w.level}</div>
-              <div className="korean text-3xl font-bold text-ink-900">{w.word}</div>
-              <div className="mt-1 text-sm text-ink-500">{w.romanization} · {w.ipa}</div>
-              <div className="mt-3 text-sm text-ink-700">{w.definitionEn}</div>
-              {w.etymology?.rootWords && Array.isArray(w.etymology.rootWords) && typeof w.etymology.rootWords[0] === "object" ? (
-                <div className="mt-4 flex gap-2">
-                  {(w.etymology.rootWords as any[]).map((h, i) => (
-                    <span key={i} className="hanja border-b-2 border-brand-300 px-1">
-                      {h.char}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          <ExamCard
+            gradient="from-sky-400 to-brand-500"
+            emoji="🌱"
+            name="TOPIK I"
+            sub="Beginner · Level 1-2"
+            words="2,000"
+            href="/exams/TOPIK_I"
+          />
+          <ExamCard
+            gradient="from-indigo-400 to-purple-500"
+            emoji="🌿"
+            name="TOPIK II"
+            sub="Intermediate & Advanced · Level 3-6"
+            words="7,000"
+            href="/exams/TOPIK_II_MID"
+          />
+          <ExamCard
+            gradient="from-emerald-400 to-teal-500"
+            emoji="🛠️"
+            name="EPS-TOPIK"
+            sub="Employment Permit System"
+            words="1,000"
+            href="/exams/EPS_TOPIK"
+          />
+        </div>
+      </section>
+
+      {/* ─── CROSS PROMOTION ───────────────────────────────────────── */}
+      <section className="rounded-3xl border border-gray-200 bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8 sm:p-10">
+        <div className="text-center">
+          <span className="chip bg-gray-200 text-ink-700">Part of the Vision Platform</span>
+          <h2 className="mt-4 text-2xl font-bold text-ink-900">
+            One platform, three languages
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-ink-500">
+            Unipath builds AI-powered vocabulary apps that share 93% of their codebase.
+            Master one language, then jump to the next.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-6 sm:grid-cols-3">
+          <PlatformCard
+            color="indigo"
+            abbr="VV"
+            name="VocaVision AI"
+            lang="English"
+            desc="SAT, TOEFL, GRE vocabulary for Korean speakers."
+            href="https://vocavision.app"
+          />
+          <PlatformCard
+            color="teal"
+            abbr="HV"
+            name="HangeulVision AI"
+            lang="Korean"
+            desc="TOPIK, KIIP, EPS vocabulary for the world."
+            href="/"
+            current
+          />
+          <PlatformCard
+            color="rose"
+            abbr="KV"
+            name="KanjiVision AI"
+            lang="Japanese"
+            desc="JLPT kanji & vocabulary for global learners."
+            href="https://josens83-kanjivision-main.vercel.app"
+          />
+        </div>
+      </section>
+
+      {/* ─── CTA BANNER ────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 p-10 text-white sm:p-14">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-brand-800/20 blur-3xl" />
+        <div className="relative">
+          <h2 className="text-3xl font-bold leading-tight sm:text-4xl">
+            Ready to see Korean the way you remember it?
+          </h2>
+          <p className="mt-3 max-w-xl text-white/85">
+            Free tier is 800 words of TOPIK I — no card required. Upgrade any time.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link
+              href="/signup"
+              className="btn bg-white text-brand-700 shadow-lg hover:bg-brand-50"
+            >
+              Create account
             </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* EXAM LINEUP */}
-      <section>
-        <h2 className="text-2xl font-bold text-ink-900">Built for every Korean exam</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {EXAMS.map((e) => (
-            <Link href={`/exams/${e.id}`} key={e.id} className="card block p-5 transition hover:shadow-pop">
-              <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl text-xl bg-gradient-to-br ${e.color}`}>{e.emoji}</div>
-              <div className="font-semibold text-ink-900">{e.name}</div>
-              <div className="text-sm text-ink-500">{e.nameEn}</div>
-              <div className="mt-2 text-xs text-ink-500">{e.levelRange} · {e.wordCount.toLocaleString()} words</div>
+            <Link
+              href="/pricing"
+              className="btn border border-white/50 text-white hover:bg-white/10"
+            >
+              View plans
             </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 p-10 text-white">
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <h2 className="text-3xl font-bold leading-tight sm:text-4xl">
-          Ready to see Korean the way you remember it?
-        </h2>
-        <p className="mt-2 max-w-xl text-white/85">
-          Free tier is 800 words of TOPIK I — no card required. Upgrade any time.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/signup" className="btn bg-white text-brand-700 hover:bg-brand-50">
-            Create account
-          </Link>
-          <Link href="/pricing" className="btn border border-white/60 text-white hover:bg-white/10">
-            View plans
-          </Link>
+          </div>
         </div>
       </section>
     </div>
   );
 }
 
-function WordPreview() {
+/* ─── Sub-components ────────────────────────────────────────────────────── */
+
+function HeroCard() {
   return (
-    <div className="card p-6">
-      <div className="chip">TOPIK I · Verb</div>
-      <div className="korean mt-3 text-5xl font-bold text-ink-900">포기하다</div>
-      <div className="mt-1 text-sm text-ink-500">pogihada · /po̞.ɡi.ɦa̠.da/</div>
-      <div className="mt-4 aspect-[4/3] rounded-2xl bg-gradient-to-br from-brand-100 via-white to-indigo-100 p-3 text-xs text-ink-500">
-        <div className="flex h-full items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl">🎒📝➡️🚪</div>
-            <div className="mt-2">AI Concept · "to abandon"</div>
-          </div>
-        </div>
+    <div className="card space-y-4 p-6 shadow-pop">
+      <div className="flex items-center justify-between">
+        <span className="chip">TOPIK I &middot; Verb</span>
+        <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-ink-700">
+          Concept
+        </span>
       </div>
-      <div className="mt-4 flex items-center gap-2">
-        <span className="hanja border-b-2 border-brand-300 px-1">抛</span>
-        <span className="text-xs text-ink-500">throw</span>
-        <span className="mx-1 text-ink-300">+</span>
-        <span className="hanja border-b-2 border-brand-300 px-1">棄</span>
-        <span className="text-xs text-ink-500">abandon</span>
+      <div className="korean text-5xl font-bold text-ink-900 sm:text-6xl">포기하다</div>
+      <div className="text-sm text-ink-500">pogihada &middot; /po̞.ɡi.ɦa̠.da/</div>
+      <div className="text-base text-ink-700">to give up; to abandon</div>
+      {/* Hanja tiles */}
+      <div className="flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 p-3">
+        <div className="text-center">
+          <div className="font-serif text-3xl text-brand-700">抛</div>
+          <div className="text-[10px] text-ink-500">throw &middot; 포</div>
+        </div>
+        <span className="text-xl text-ink-300">+</span>
+        <div className="text-center">
+          <div className="font-serif text-3xl text-brand-700">棄</div>
+          <div className="text-[10px] text-ink-500">discard &middot; 기</div>
+        </div>
+        <span className="mx-1 text-ink-300">&rarr;</span>
+        <div className="korean text-lg font-bold text-brand-700">포기</div>
+      </div>
+      {/* Mnemonic chip */}
+      <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+        <span className="font-semibold">Mnemonic:</span> PO-GI-HA-DA &rarr;
+        &ldquo;POst it and GO, HA! Done Already.&rdquo;
       </div>
     </div>
+  );
+}
+
+function StatCard({ children }: { children: React.ReactNode }) {
+  return <div className="card p-5">{children}</div>;
+}
+
+function FeatureCard({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="card space-y-3 p-6">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+        {icon}
+      </div>
+      <h3 className="text-lg font-bold text-ink-900">{title}</h3>
+      <p className="text-sm leading-relaxed text-ink-500">{body}</p>
+    </div>
+  );
+}
+
+function ExamCard({
+  gradient,
+  emoji,
+  name,
+  sub,
+  words,
+  href,
+}: {
+  gradient: string;
+  emoji: string;
+  name: string;
+  sub: string;
+  words: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="card group block p-6 transition hover:shadow-pop"
+    >
+      <div
+        className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-2xl ${gradient}`}
+      >
+        {emoji}
+      </div>
+      <h3 className="text-lg font-bold text-ink-900 group-hover:text-brand-600">
+        {name}
+      </h3>
+      <p className="mt-1 text-sm text-ink-500">{sub}</p>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-xs font-semibold text-ink-500">{words} words</span>
+        <span className="text-sm font-semibold text-brand-600">
+          Start learning &rarr;
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function PlatformCard({
+  color,
+  abbr,
+  name,
+  lang,
+  desc,
+  href,
+  current,
+}: {
+  color: "indigo" | "teal" | "rose";
+  abbr: string;
+  name: string;
+  lang: string;
+  desc: string;
+  href: string;
+  current?: boolean;
+}) {
+  const bg =
+    color === "indigo"
+      ? "from-indigo-500 to-indigo-600"
+      : color === "teal"
+        ? "from-brand-500 to-brand-600"
+        : "from-rose-500 to-rose-600";
+  return (
+    <a
+      href={href}
+      target={current ? undefined : "_blank"}
+      rel={current ? undefined : "noopener noreferrer"}
+      className={`card group block p-5 transition hover:shadow-pop ${
+        current ? "ring-2 ring-brand-400" : ""
+      }`}
+    >
+      <div
+        className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white ${bg}`}
+      >
+        {abbr}
+      </div>
+      <div className="font-bold text-ink-900 group-hover:text-brand-600">{name}</div>
+      <div className="chip mt-1 inline-block">{lang}</div>
+      <p className="mt-2 text-sm text-ink-500">{desc}</p>
+      {current && (
+        <span className="mt-3 inline-block text-xs font-semibold text-brand-600">
+          You are here
+        </span>
+      )}
+    </a>
+  );
+}
+
+/* ─── Icons (inline SVG, no deps) ──────────────────────────────────────── */
+
+function HanjaIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M12 7v10M8 12h8" />
+    </svg>
+  );
+}
+
+function MnemonicIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a7 7 0 0 1 7 7c0 3-2 5-3.5 6.5L12 19l-3.5-3.5C7 14 5 12 5 9a7 7 0 0 1 7-7z" />
+      <circle cx="12" cy="9" r="2" />
+    </svg>
+  );
+}
+
+function SrsIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0" />
+      <path d="M12 7v5l3 3" />
+    </svg>
   );
 }
