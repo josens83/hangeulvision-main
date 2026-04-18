@@ -113,8 +113,8 @@ export default function OgImage() {
           </div>
 
           {/* Korean word */}
-          <span style={{ fontSize: "48px", fontWeight: 800, color: "#0b1220" }}>포기하다</span>
-          <span style={{ fontSize: "15px", color: "#6b7280" }}>pogihada · to give up</span>
+          <span style={{ fontSize: "48px", fontWeight: 800, color: "#0b1220" }}>감사하다</span>
+          <span style={{ fontSize: "15px", color: "#6b7280" }}>gamsahada · to be thankful</span>
 
           {/* Hanja box */}
           <div
@@ -129,16 +129,16 @@ export default function OgImage() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <span style={{ fontSize: "32px", fontWeight: 700, color: "#0c8a7b" }}>抛</span>
-              <span style={{ fontSize: "10px", color: "#6b7280" }}>throw · 포</span>
+              <span style={{ fontSize: "32px", fontWeight: 700, color: "#0c8a7b" }}>感</span>
+              <span style={{ fontSize: "10px", color: "#6b7280" }}>feel · 감</span>
             </div>
             <span style={{ fontSize: "20px", color: "#d1d5db" }}>+</span>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <span style={{ fontSize: "32px", fontWeight: 700, color: "#0c8a7b" }}>棄</span>
-              <span style={{ fontSize: "10px", color: "#6b7280" }}>discard · 기</span>
+              <span style={{ fontSize: "32px", fontWeight: 700, color: "#0c8a7b" }}>謝</span>
+              <span style={{ fontSize: "10px", color: "#6b7280" }}>thanks · 사</span>
             </div>
             <span style={{ fontSize: "18px", color: "#d1d5db" }}>→</span>
-            <span style={{ fontSize: "22px", fontWeight: 700, color: "#0c8a7b" }}>포기</span>
+            <span style={{ fontSize: "22px", fontWeight: 700, color: "#0c8a7b" }}>감사</span>
           </div>
 
           {/* Mnemonic */}
@@ -154,14 +154,14 @@ export default function OgImage() {
           >
             <span style={{ fontSize: "11px", fontWeight: 600, color: "#92400e" }}>Mnemonic</span>
             <span style={{ fontSize: "13px", color: "#78350f" }}>
-              PO-GI → &ldquo;POst it and GO!&rdquo;
+              GAM-SA-HA-DA → &ldquo;GAMe SAvvy HAnD DAwn.&rdquo;
             </span>
           </div>
 
           {/* Example */}
           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <span style={{ fontSize: "14px", color: "#374151" }}>꿈을 포기하지 마세요.</span>
-            <span style={{ fontSize: "12px", color: "#9ca3af" }}>Don&apos;t give up on your dreams.</span>
+            <span style={{ fontSize: "14px", color: "#374151" }}>도와주셔서 감사합니다.</span>
+            <span style={{ fontSize: "12px", color: "#9ca3af" }}>Thank you for your help.</span>
           </div>
         </div>
       </div>

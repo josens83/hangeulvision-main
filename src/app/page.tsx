@@ -39,7 +39,7 @@ export default function HomePage() {
               <Link href="/signup" className="btn-primary text-base px-7 py-3">
                 Start free &rarr; 800 words
               </Link>
-              <Link href="/learn/w_pogihada" className="btn-outline text-base px-7 py-3">
+              <Link href="/learn/w_gamsahada" className="btn-outline text-base px-7 py-3">
                 See a word
               </Link>
             </div>
@@ -245,27 +245,27 @@ function HeroCard() {
           Concept
         </span>
       </div>
-      <div className="korean text-5xl font-bold text-ink-900 sm:text-6xl">포기하다</div>
-      <div className="text-sm text-ink-500">pogihada &middot; /po̞.ɡi.ɦa̠.da/</div>
-      <div className="text-base text-ink-700">to give up; to abandon</div>
+      <div className="korean text-5xl font-bold text-ink-900 sm:text-6xl">감사하다</div>
+      <div className="text-sm text-ink-500">gamsahada &middot; /kam.sa.ha.da/</div>
+      <div className="text-base text-ink-700">to be thankful; to appreciate</div>
       {/* Hanja tiles */}
       <div className="flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 p-3">
         <div className="text-center">
-          <div className="font-serif text-3xl text-brand-700">抛</div>
-          <div className="text-[10px] text-ink-500">throw &middot; 포</div>
+          <div className="font-serif text-3xl text-brand-700">感</div>
+          <div className="text-[10px] text-ink-500">feel &middot; 감</div>
         </div>
         <span className="text-xl text-ink-300">+</span>
         <div className="text-center">
-          <div className="font-serif text-3xl text-brand-700">棄</div>
-          <div className="text-[10px] text-ink-500">discard &middot; 기</div>
+          <div className="font-serif text-3xl text-brand-700">謝</div>
+          <div className="text-[10px] text-ink-500">thanks &middot; 사</div>
         </div>
         <span className="mx-1 text-ink-300">&rarr;</span>
-        <div className="korean text-lg font-bold text-brand-700">포기</div>
+        <div className="korean text-lg font-bold text-brand-700">감사</div>
       </div>
       {/* Mnemonic chip */}
       <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-        <span className="font-semibold">Mnemonic:</span> PO-GI-HA-DA &rarr;
-        &ldquo;POst it and GO, HA! Done Already.&rdquo;
+        <span className="font-semibold">Mnemonic:</span> GAM-SA-HA-DA &rarr;
+        &ldquo;GAMe SAvvy HAnD DAwn.&rdquo;
       </div>
     </div>
   );

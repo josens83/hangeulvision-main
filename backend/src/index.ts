@@ -19,17 +19,37 @@ import { wordRouter } from "./routes/word.routes";
 function createApp() {
   const app = express();
 
+  // ─── CORS (must be registered BEFORE body parser + routes) ─────────
+  //
+  // Allowlist: Vercel production, localhost for dev, plus anything in
+  // CORS_ORIGIN (singular, as set in Railway Variables) or CORS_ORIGINS
+  // (plural, comma-separated, legacy config.ts path).
+  const ALLOWED_ORIGINS: string[] = [
+    "https://hangeulvision-main.vercel.app",
+    "https://hangeulvision.app",
+    "http://localhost:3000",
+    process.env.CORS_ORIGIN ?? "",
+    ...config.corsOrigins,
+  ]
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
       origin(origin, cb) {
-        if (!origin) return cb(null, true); // curl / mobile apps
-        if (config.corsOrigins.includes("*") || config.corsOrigins.includes(origin)) {
+        // No-origin requests (curl, server-to-server, mobile apps) always pass.
+        if (!origin) return cb(null, true);
+        if (ALLOWED_ORIGINS.includes("*") || ALLOWED_ORIGINS.includes(origin)) {
           return cb(null, true);
         }
+        // eslint-disable-next-line no-console
+        console.warn(`[cors] blocked origin: ${origin} (allowed: ${ALLOWED_ORIGINS.join(", ")})`);
         return cb(new Error(`CORS: origin ${origin} is not allowed`));
       },
       credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Internal-Key"],
     }),
   );
   app.use(express.json({ limit: "2mb" }));
