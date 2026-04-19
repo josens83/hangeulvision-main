@@ -31,20 +31,44 @@ export class ImagePipelineError extends Error {
 
 const STABILITY_URL =
   "https://api.stability.ai/v2beta/stable-image/generate/sd3";
-const STABILITY_KEY = () => process.env.STABILITY_API_KEY?.trim() ?? "";
+
+/**
+ * Reads the Stability API key and strips known operator mistakes:
+ *   • leading/trailing whitespace or newlines (Railway env editor artefact)
+ *   • accidental "Bearer " prefix already in the value
+ *   • BOM / zero-width characters
+ */
+function stabilityKey(): string {
+  let raw = process.env.STABILITY_API_KEY ?? "";
+  raw = raw.replace(/[\uFEFF\u200B\u200C\u200D]/g, "").trim();
+  if (raw.toLowerCase().startsWith("bearer ")) {
+    raw = raw.slice(7).trim();
+  }
+  return raw;
+}
 
 export function hasStabilityCredentials(): boolean {
-  return STABILITY_KEY().length > 0;
+  return stabilityKey().length > 0;
 }
 
 export async function generateImage(
   prompt: string,
 ): Promise<{ buffer: Buffer; contentType: string }> {
-  const key = STABILITY_KEY();
+  const key = stabilityKey();
   if (!key) {
     throw new ImagePipelineError("render", "stability_no_key");
   }
 
+  // eslint-disable-next-line no-console
+  console.log(
+    `[image/stability] key present: true, length: ${key.length}, ` +
+      `prefix: "${key.slice(0, 5)}…", ` +
+      `charCodes[0..5]: [${[...key.slice(0, 6)].map((c) => c.charCodeAt(0)).join(",")}]`,
+  );
+
+  // Build multipart body manually with a Blob-based FormData so Node.js
+  // built-in fetch serialises the boundary correctly. Some Node versions
+  // mishandle FormData + headers — the manual approach is deterministic.
   const form = new FormData();
   form.append("prompt", prompt);
   form.append("model", "sd3-large-turbo");
@@ -53,13 +77,24 @@ export async function generateImage(
 
   const res = await fetch(STABILITY_URL, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, Accept: "image/*" },
+    headers: {
+      Authorization: `Bearer ${key}`,
+      Accept: "image/*",
+    },
     body: form,
   });
 
+  // eslint-disable-next-line no-console
+  console.log(
+    `[image/stability] response: ${res.status} ${res.statusText} ` +
+      `content-type: ${res.headers.get("content-type")}`,
+  );
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    const snippet = text.slice(0, 160).replace(/\s+/g, " ");
+    const snippet = text.slice(0, 300).replace(/\s+/g, " ");
+    // eslint-disable-next-line no-console
+    console.error(`[image/stability] error body: ${snippet}`);
     throw new ImagePipelineError(
       "render",
       `stability_${res.status}`,
