@@ -2,18 +2,30 @@
  * image.service.ts
  * ────────────────
  * Generates concept images for Korean vocabulary entries via:
- *   1. Claude   → derives a visual prompt from the word + definition
- *   2. Stability AI (sd3-large-turbo)  → renders the prompt to an image
+ *   1. Claude          → derives a visual prompt from word + definition
+ *   2. Stability AI    → renders the prompt to a 1024×1024 webp
  *   3. Supabase Storage → hosts the resulting webp
  *
- * Every function in this module returns `null` rather than throwing when
- * the relevant API key is missing — the controller counts those as
- * "skipped" and the pipeline degrades gracefully to text-only cards.
+ * Failure handling
+ *   Each helper throws ImagePipelineError with a `step` + diagnostic
+ *   `message`. The controller catches and surfaces that on the per-word
+ *   result, so an operator can immediately see *why* a word was skipped:
+ *     "claude_no_key", "stability_401", "supabase_404_bucket_not_found", etc.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
 import { anthropicClient } from "./claude.service";
+
+export class ImagePipelineError extends Error {
+  constructor(
+    public readonly step: "prompt" | "render" | "upload",
+    public readonly reason: string,
+    message?: string,
+  ) {
+    super(message ?? `${step}:${reason}`);
+  }
+}
 
 // ─── Stability AI ──────────────────────────────────────────────────────────
 
@@ -25,15 +37,13 @@ export function hasStabilityCredentials(): boolean {
   return STABILITY_KEY().length > 0;
 }
 
-/**
- * Calls the Stability API (sd3-large-turbo, 1:1, webp output).
- * Returns the raw image buffer or null on failure.
- */
 export async function generateImage(
   prompt: string,
-): Promise<{ buffer: Buffer; contentType: string } | null> {
+): Promise<{ buffer: Buffer; contentType: string }> {
   const key = STABILITY_KEY();
-  if (!key) return null;
+  if (!key) {
+    throw new ImagePipelineError("render", "stability_no_key");
+  }
 
   const form = new FormData();
   form.append("prompt", prompt);
@@ -49,11 +59,12 @@ export async function generateImage(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    // eslint-disable-next-line no-console
-    console.error(
-      `[image] Stability API ${res.status}: ${text.slice(0, 200)}`,
+    const snippet = text.slice(0, 160).replace(/\s+/g, " ");
+    throw new ImagePipelineError(
+      "render",
+      `stability_${res.status}`,
+      `Stability AI ${res.status}: ${snippet}`,
     );
-    return null;
   }
 
   const arrayBuf = await res.arrayBuffer();
@@ -69,26 +80,22 @@ export function hasSupabaseStorage(): boolean {
   return !!(config.supabase.url && config.supabase.serviceKey);
 }
 
-/**
- * Uploads a buffer to Supabase Storage and returns the public URL.
- * Path convention: `concept/{wordId}.webp`
- */
 export async function uploadToSupabase(
   path: string,
   buffer: Buffer,
   contentType: string,
-): Promise<string | null> {
+): Promise<string> {
   const { url, serviceKey, bucket } = config.supabase;
-  if (!url || !serviceKey) return null;
+  if (!url || !serviceKey) {
+    throw new ImagePipelineError("upload", "supabase_no_credentials");
+  }
 
   const endpoint = `${url}/storage/v1/object/${bucket}/${path}`;
-
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${serviceKey}`,
       "Content-Type": contentType,
-      // Upsert so re-runs overwrite without error.
       "x-upsert": "true",
     },
     body: buffer,
@@ -96,18 +103,20 @@ export async function uploadToSupabase(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    // eslint-disable-next-line no-console
-    console.error(
-      `[image] Supabase upload ${res.status}: ${text.slice(0, 200)}`,
+    const snippet = text.slice(0, 200).replace(/\s+/g, " ");
+    // Surface common Supabase failure modes verbatim — bucket not found,
+    // RLS policy denial, invalid service key, etc.
+    throw new ImagePipelineError(
+      "upload",
+      `supabase_${res.status}`,
+      `Supabase Storage ${res.status} on bucket "${bucket}": ${snippet}`,
     );
-    return null;
   }
 
-  // Public URL pattern for Supabase Storage.
   return `${url}/storage/v1/object/public/${bucket}/${path}`;
 }
 
-// ─── Visual prompt generation (Claude) ─────────────────────────────────────
+// ─── Claude prompt generation ──────────────────────────────────────────────
 
 const PROMPT_SYSTEM = `You are a visual prompt engineer for vocabulary learning apps.
 Given a Korean word and its English definition, produce a single visual prompt
@@ -119,19 +128,18 @@ for a concept illustration. The prompt must be:
 - No people's faces in detail (avoid likeness issues)
 Return ONLY the prompt text, no quotes, no explanation.`;
 
-/**
- * Asks Claude to write a short visual prompt for Stability AI.
- * Returns null when ANTHROPIC_API_KEY is unset.
- */
 export async function generateVisualPrompt(
   word: string,
   definition: string,
-): Promise<string | null> {
+): Promise<string> {
   const client = anthropicClient();
-  if (!client) return null;
+  if (!client) {
+    throw new ImagePipelineError("prompt", "claude_no_key");
+  }
 
+  let res;
   try {
-    const res = await client.messages.create({
+    res = await client.messages.create({
       model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-20250514",
       max_tokens: 200,
       system: PROMPT_SYSTEM,
@@ -142,55 +150,17 @@ export async function generateVisualPrompt(
         },
       ],
     });
-
-    const text = res.content.find(
-      (b): b is Anthropic.TextBlock => b.type === "text",
-    );
-    return text?.text?.trim() ?? null;
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[image] Claude prompt generation failed:", err);
-    return null;
-  }
-}
-
-// ─── Full pipeline: prompt → image → upload ────────────────────────────────
-
-export interface ImageResult {
-  url: string;
-  prompt: string;
-}
-
-/**
- * End-to-end: generates a visual prompt, renders it, and uploads to storage.
- * Returns null at any step failure (caller counts as "skipped").
- */
-export async function generateAndUploadConceptImage(
-  wordId: string,
-  word: string,
-  definition: string,
-): Promise<ImageResult | null> {
-  const prompt = await generateVisualPrompt(word, definition);
-  if (!prompt) {
-    // eslint-disable-next-line no-console
-    console.warn(`[image] no prompt generated for ${word}`);
-    return null;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ImagePipelineError("prompt", "claude_api_error", msg);
   }
 
-  const image = await generateImage(prompt);
-  if (!image) return null;
-
-  const path = `concept/${wordId}.webp`;
-
-  if (hasSupabaseStorage()) {
-    const url = await uploadToSupabase(path, image.buffer, image.contentType);
-    if (url) return { url, prompt };
-  }
-
-  // Fallback: if Supabase isn't configured, we can't host the image.
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[image] Supabase Storage not configured — image generated but not uploaded for ${word}`,
+  const block = res.content.find(
+    (b): b is Anthropic.TextBlock => b.type === "text",
   );
-  return null;
+  const text = block?.text?.trim();
+  if (!text) {
+    throw new ImagePipelineError("prompt", "claude_empty_response");
+  }
+  return text;
 }

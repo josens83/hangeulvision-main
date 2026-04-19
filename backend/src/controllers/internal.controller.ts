@@ -29,9 +29,12 @@ import {
   type GeneratedWord,
 } from "../services/claude.service";
 import {
-  generateAndUploadConceptImage,
+  generateImage,
+  generateVisualPrompt,
   hasStabilityCredentials,
   hasSupabaseStorage,
+  ImagePipelineError,
+  uploadToSupabase,
 } from "../services/image.service";
 import { badRequest } from "../utils/http";
 import { stub } from "./_stub";
@@ -505,17 +508,43 @@ const generateImagesSchema = z.object({
   count: z.coerce.number().int().min(1).max(20).default(10),
 });
 
+interface ImageResultRow {
+  word: string;
+  wordId: string;
+  status: "created" | "failed";
+  step?: "prompt" | "render" | "upload" | "db";
+  reason?: string;
+  url?: string;
+  detail?: string;
+}
+
 export async function generateImages(req: Request, res: Response): Promise<void> {
+  // Up-front credential gates with explicit hints — these come back as 501.
   if (!hasClaudeCredentials()) {
-    unavailable(res, "Claude API key not configured (needed for prompt generation).");
+    res.status(501).json({
+      error: "not_implemented",
+      step: "prompt",
+      reason: "claude_no_key",
+      message: "ANTHROPIC_API_KEY not set on the server.",
+    });
     return;
   }
   if (!hasStabilityCredentials()) {
-    unavailable(res, "Stability AI key not configured (STABILITY_API_KEY).");
+    res.status(501).json({
+      error: "not_implemented",
+      step: "render",
+      reason: "stability_no_key",
+      message: "STABILITY_API_KEY not set on the server.",
+    });
     return;
   }
   if (!hasSupabaseStorage()) {
-    unavailable(res, "Supabase Storage not configured (SUPABASE_URL + SUPABASE_SERVICE_KEY).");
+    res.status(501).json({
+      error: "not_implemented",
+      step: "upload",
+      reason: "supabase_no_credentials",
+      message: "SUPABASE_URL + SUPABASE_SERVICE_KEY not set on the server.",
+    });
     return;
   }
 
@@ -526,85 +555,216 @@ export async function generateImages(req: Request, res: Response): Promise<void>
     throw badRequest("Invalid request params.", err);
   }
 
-  // Find words that don't have a CONCEPT visual yet.
-  const words = await prisma.word.findMany({
-    where: {
-      exam: body.exam,
-      active: true,
-      visuals: { none: { kind: "CONCEPT" } },
-    },
-    select: { id: true, word: true, definitionEn: true },
-    orderBy: [{ level: "asc" }, { word: "asc" }],
-    take: body.count,
-  });
+  // ─── Eligibility query ───────────────────────────────────────────────────
+  // Two diagnostic queries so the operator can confirm the dataset state:
+  //   • totalForExam       → all active words in this exam
+  //   • alreadyWithConcept → those with at least one WordVisual{kind:CONCEPT}
+  //   • eligible           → totalForExam − alreadyWithConcept (what we'll process)
+  const [totalForExam, alreadyWithConcept, eligible] = await prisma.$transaction([
+    prisma.word.count({ where: { exam: body.exam, active: true } }),
+    prisma.word.count({
+      where: {
+        exam: body.exam,
+        active: true,
+        visuals: { some: { kind: "CONCEPT" } },
+      },
+    }),
+    prisma.word.findMany({
+      where: {
+        exam: body.exam,
+        active: true,
+        visuals: { none: { kind: "CONCEPT" } },
+      },
+      select: { id: true, word: true, definitionEn: true },
+      orderBy: [{ level: "asc" }, { word: "asc" }],
+      take: body.count,
+    }),
+  ]);
 
   // eslint-disable-next-line no-console
   console.log(
     `[generate-images] exam=${body.exam} count=${body.count} ` +
-      `eligible=${words.length} words=[${words.map((w) => w.word).join(", ")}]`,
+      `total=${totalForExam} alreadyWithConcept=${alreadyWithConcept} ` +
+      `eligible=${eligible.length} words=[${eligible.map((w) => w.word).join(", ")}]`,
   );
 
-  if (words.length === 0) {
+  if (eligible.length === 0) {
     res.json({
-      message: "All words in this exam already have concept images.",
+      exam: body.exam,
+      message: "No eligible words — all words in this exam already have concept images.",
+      diagnostics: { totalForExam, alreadyWithConcept, eligible: 0 },
       created: 0,
-      skipped: 0,
-      errors: [],
+      failed: 0,
+      results: [],
     });
     return;
   }
 
-  const results: Array<{ word: string; status: "created" | "skipped" | "error"; url?: string; error?: string }> = [];
+  // ─── Per-word pipeline ───────────────────────────────────────────────────
+  const results: ImageResultRow[] = [];
   let created = 0;
-  let skipped = 0;
+  let failed = 0;
 
-  for (const w of words) {
+  for (let i = 0; i < eligible.length; i += 1) {
+    const w = eligible[i];
+
     try {
-      const result = await generateAndUploadConceptImage(
-        w.id,
-        w.word,
-        w.definitionEn,
-      );
-      if (!result) {
-        skipped += 1;
-        results.push({ word: w.word, status: "skipped" });
+      // Step 1: prompt (Claude)
+      let prompt: string;
+      try {
+        prompt = await generateVisualPrompt(w.word, w.definitionEn);
+      } catch (err) {
+        if (err instanceof ImagePipelineError) {
+          failed += 1;
+          results.push({
+            word: w.word,
+            wordId: w.id,
+            status: "failed",
+            step: err.step,
+            reason: err.reason,
+            detail: err.message,
+          });
+          // eslint-disable-next-line no-console
+          console.warn(`[generate-images] ✗ ${w.word} prompt: ${err.message}`);
+          continue;
+        }
+        throw err;
+      }
+
+      // Step 2: render (Stability)
+      let image: { buffer: Buffer; contentType: string };
+      try {
+        image = await generateImage(prompt);
+      } catch (err) {
+        if (err instanceof ImagePipelineError) {
+          failed += 1;
+          results.push({
+            word: w.word,
+            wordId: w.id,
+            status: "failed",
+            step: err.step,
+            reason: err.reason,
+            detail: err.message,
+          });
+          // eslint-disable-next-line no-console
+          console.warn(`[generate-images] ✗ ${w.word} render: ${err.message}`);
+          continue;
+        }
+        throw err;
+      }
+
+      // Step 3: upload (Supabase)
+      let url: string;
+      try {
+        url = await uploadToSupabase(
+          `concept/${w.id}.webp`,
+          image.buffer,
+          image.contentType,
+        );
+      } catch (err) {
+        if (err instanceof ImagePipelineError) {
+          failed += 1;
+          results.push({
+            word: w.word,
+            wordId: w.id,
+            status: "failed",
+            step: err.step,
+            reason: err.reason,
+            detail: err.message,
+          });
+          // eslint-disable-next-line no-console
+          console.warn(`[generate-images] ✗ ${w.word} upload: ${err.message}`);
+          continue;
+        }
+        throw err;
+      }
+
+      // Step 4: DB
+      try {
+        await prisma.wordVisual.create({
+          data: {
+            wordId: w.id,
+            kind: "CONCEPT",
+            url,
+            prompt,
+            width: 1024,
+            height: 1024,
+          },
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failed += 1;
+        results.push({
+          word: w.word,
+          wordId: w.id,
+          status: "failed",
+          step: "db",
+          reason: "wordvisual_create_failed",
+          detail: msg,
+        });
+        // eslint-disable-next-line no-console
+        console.error(`[generate-images] ✗ ${w.word} db: ${msg}`);
         continue;
       }
 
-      await prisma.wordVisual.create({
-        data: {
-          wordId: w.id,
-          kind: "CONCEPT",
-          url: result.url,
-          prompt: result.prompt,
-          width: 1024,
-          height: 1024,
-        },
-      });
       created += 1;
-      results.push({ word: w.word, status: "created", url: result.url });
-
+      results.push({
+        word: w.word,
+        wordId: w.id,
+        status: "created",
+        url,
+      });
       // eslint-disable-next-line no-console
-      console.log(`[generate-images] ✓ ${w.word} → ${result.url}`);
+      console.log(`[generate-images] ✓ ${w.word} → ${url}`);
     } catch (err) {
+      // Should not reach here — the step-level catches handle expected errors.
       const msg = err instanceof Error ? err.message : String(err);
-      results.push({ word: w.word, status: "error", error: msg });
+      failed += 1;
+      results.push({
+        word: w.word,
+        wordId: w.id,
+        status: "failed",
+        step: "prompt",
+        reason: "unexpected_error",
+        detail: msg,
+      });
       // eslint-disable-next-line no-console
-      console.error(`[generate-images] ✗ ${w.word}:`, msg);
+      console.error(`[generate-images] ✗ ${w.word} unexpected:`, err);
     }
 
-    // Brief pause between images to respect rate limits.
-    if (words.indexOf(w) < words.length - 1) {
+    // 500ms pause between images for Stability rate-limit headroom.
+    if (i < eligible.length - 1) {
       await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  // Aggregate failure reasons for the top-level summary.
+  const failureBreakdown: Record<string, number> = {};
+  for (const r of results) {
+    if (r.status === "failed") {
+      const k = `${r.step}:${r.reason}`;
+      failureBreakdown[k] = (failureBreakdown[k] ?? 0) + 1;
     }
   }
 
   // eslint-disable-next-line no-console
   console.log(
-    `[generate-images] done · created=${created} skipped=${skipped} errors=${results.filter((r) => r.status === "error").length}`,
+    `[generate-images] done · created=${created} failed=${failed} ` +
+      `breakdown=${JSON.stringify(failureBreakdown)}`,
   );
 
-  res.json({ created, skipped, errors: results.filter((r) => r.status === "error"), results });
+  res.json({
+    exam: body.exam,
+    created,
+    failed,
+    diagnostics: {
+      totalForExam,
+      alreadyWithConcept,
+      eligible: eligible.length,
+      failureBreakdown,
+    },
+    results,
+  });
 }
 
 // ─── Legacy aliases (VocaVision parity) ────────────────────────────────────
