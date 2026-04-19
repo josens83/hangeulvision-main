@@ -11,8 +11,9 @@
  *                                                for VocaVision-parity tooling)
  *   POST /internal/generate-content             (alias of single batch)
  *
- * Image endpoints and queue operations remain stubs until Stability AI
- * integration lands.
+ * Image endpoints:
+ *   GET  /internal/generate-images         — concept images for words missing them
+ *   POST /internal/generate-concept        (stub → single image, TBD)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -27,6 +28,11 @@ import {
   type GeneratedEtymology,
   type GeneratedWord,
 } from "../services/claude.service";
+import {
+  generateAndUploadConceptImage,
+  hasStabilityCredentials,
+  hasSupabaseStorage,
+} from "../services/image.service";
 import { badRequest } from "../utils/http";
 import { stub } from "./_stub";
 
@@ -490,6 +496,115 @@ export async function generateWordsBatch(req: Request, res: Response): Promise<v
     usage: aggregateUsage,
     detail: batches,
   });
+}
+
+// ─── Endpoint: GET / POST /internal/generate-images ────────────────────────
+
+const generateImagesSchema = z.object({
+  exam: z.enum(EXAM_VALUES).default("TOPIK_I"),
+  count: z.coerce.number().int().min(1).max(20).default(10),
+});
+
+export async function generateImages(req: Request, res: Response): Promise<void> {
+  if (!hasClaudeCredentials()) {
+    unavailable(res, "Claude API key not configured (needed for prompt generation).");
+    return;
+  }
+  if (!hasStabilityCredentials()) {
+    unavailable(res, "Stability AI key not configured (STABILITY_API_KEY).");
+    return;
+  }
+  if (!hasSupabaseStorage()) {
+    unavailable(res, "Supabase Storage not configured (SUPABASE_URL + SUPABASE_SERVICE_KEY).");
+    return;
+  }
+
+  let body: z.infer<typeof generateImagesSchema>;
+  try {
+    body = generateImagesSchema.parse(inputFor(req));
+  } catch (err) {
+    throw badRequest("Invalid request params.", err);
+  }
+
+  // Find words that don't have a CONCEPT visual yet.
+  const words = await prisma.word.findMany({
+    where: {
+      exam: body.exam,
+      active: true,
+      visuals: { none: { kind: "CONCEPT" } },
+    },
+    select: { id: true, word: true, definitionEn: true },
+    orderBy: [{ level: "asc" }, { word: "asc" }],
+    take: body.count,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[generate-images] exam=${body.exam} count=${body.count} ` +
+      `eligible=${words.length} words=[${words.map((w) => w.word).join(", ")}]`,
+  );
+
+  if (words.length === 0) {
+    res.json({
+      message: "All words in this exam already have concept images.",
+      created: 0,
+      skipped: 0,
+      errors: [],
+    });
+    return;
+  }
+
+  const results: Array<{ word: string; status: "created" | "skipped" | "error"; url?: string; error?: string }> = [];
+  let created = 0;
+  let skipped = 0;
+
+  for (const w of words) {
+    try {
+      const result = await generateAndUploadConceptImage(
+        w.id,
+        w.word,
+        w.definitionEn,
+      );
+      if (!result) {
+        skipped += 1;
+        results.push({ word: w.word, status: "skipped" });
+        continue;
+      }
+
+      await prisma.wordVisual.create({
+        data: {
+          wordId: w.id,
+          kind: "CONCEPT",
+          url: result.url,
+          prompt: result.prompt,
+          width: 1024,
+          height: 1024,
+        },
+      });
+      created += 1;
+      results.push({ word: w.word, status: "created", url: result.url });
+
+      // eslint-disable-next-line no-console
+      console.log(`[generate-images] ✓ ${w.word} → ${result.url}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      results.push({ word: w.word, status: "error", error: msg });
+      // eslint-disable-next-line no-console
+      console.error(`[generate-images] ✗ ${w.word}:`, msg);
+    }
+
+    // Brief pause between images to respect rate limits.
+    if (words.indexOf(w) < words.length - 1) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[generate-images] done · created=${created} skipped=${skipped} errors=${results.filter((r) => r.status === "error").length}`,
+  );
+
+  res.json({ created, skipped, errors: results.filter((r) => r.status === "error"), results });
 }
 
 // ─── Legacy aliases (VocaVision parity) ────────────────────────────────────

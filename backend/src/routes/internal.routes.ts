@@ -21,7 +21,10 @@ internalRouter.post("/generate-words-batch", asyncHandler(c.generateWordsBatch))
 internalRouter.post("/generate-content-continuous", asyncHandler(c.generateContentContinuous));
 internalRouter.post("/generate-content", asyncHandler(c.generateContent));
 
-// Stability AI image generation
+// Stability AI image generation — batch pipeline
+internalRouter.get("/generate-images", asyncHandler(c.generateImages));
+internalRouter.post("/generate-images", asyncHandler(c.generateImages));
+// Legacy single-image stubs
 internalRouter.post("/images/concept", asyncHandler(c.generateConcept));
 internalRouter.post("/images/mnemonic", asyncHandler(c.generateMnemonic));
 internalRouter.post("/images/rhyme", asyncHandler(c.generateRhyme));
