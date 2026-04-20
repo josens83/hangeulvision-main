@@ -14,6 +14,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import FormData from "form-data";
 import { config } from "../config";
 import { anthropicClient } from "./claude.service";
 
@@ -66,22 +67,41 @@ export async function generateImage(
       `charCodes[0..5]: [${[...key.slice(0, 6)].map((c) => c.charCodeAt(0)).join(",")}]`,
   );
 
-  // Build multipart body manually with a Blob-based FormData so Node.js
-  // built-in fetch serialises the boundary correctly. Some Node versions
-  // mishandle FormData + headers — the manual approach is deterministic.
+  // Use the `form-data` npm package instead of Node.js global FormData.
+  // Node's built-in undici fetch + global FormData has a known issue where
+  // custom headers (Authorization) can get dropped or the multipart
+  // boundary can be malformed — this caused a persistent 401 that didn't
+  // reproduce on KanjiVision (which uses the same pattern via form-data).
   const form = new FormData();
   form.append("prompt", prompt);
   form.append("model", "sd3-large-turbo");
   form.append("aspect_ratio", "1:1");
   form.append("output_format", "webp");
 
+  // getBuffer() serialises the full multipart body deterministically.
+  // getHeaders() returns { 'content-type': 'multipart/form-data; boundary=…' }.
+  const body = form.getBuffer();
+  const formHeaders = form.getHeaders();
+
+  const headers: Record<string, string> = {
+    ...formHeaders,
+    Authorization: `Bearer ${key}`,
+    Accept: "image/*",
+  };
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[image/stability] request headers: ${JSON.stringify({
+      "content-type": headers["content-type"]?.slice(0, 60),
+      Authorization: `Bearer ${key.slice(0, 5)}…(${key.length})`,
+      Accept: headers.Accept,
+    })}`,
+  );
+
   const res = await fetch(STABILITY_URL, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      Accept: "image/*",
-    },
-    body: form,
+    headers,
+    body,
   });
 
   // eslint-disable-next-line no-console
