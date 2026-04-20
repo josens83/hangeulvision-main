@@ -289,13 +289,18 @@ function CardBack({ word }: { word: Word }) {
 
 function ConceptOrEmoji({ word, art }: { word: Word; art: "concept" | "mnemonic" }) {
   const imgUrl = art === "concept" ? conceptImageUrl(word as any) : null;
+  const [imgError, setImgError] = useState(false);
 
-  if (imgUrl) {
+  // Reset error state when the word changes (new card).
+  useEffect(() => setImgError(false), [word.id]);
+
+  if (imgUrl && !imgError) {
     return (
       <img
         src={imgUrl}
         alt={word.word}
         loading="lazy"
+        onError={() => setImgError(true)}
         className="h-full w-full object-cover"
       />
     );

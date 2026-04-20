@@ -234,14 +234,16 @@ function PronounceButton({ text }: { text: string }) {
 
 function ConceptArt({ word }: { word: Word }) {
   const imgUrl = conceptImageUrl(word as any);
+  const [imgError, setImgError] = useState(false);
 
-  if (imgUrl) {
+  if (imgUrl && !imgError) {
     return (
       <div className="aspect-square w-full overflow-hidden">
         <img
           src={imgUrl}
           alt={`AI concept image for ${word.word}`}
           loading="lazy"
+          onError={() => setImgError(true)}
           className="h-full w-full rounded-2xl object-cover"
         />
       </div>
