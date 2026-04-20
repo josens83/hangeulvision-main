@@ -122,6 +122,8 @@ export async function generateImage(
 
 // ─── Supabase Storage ──────────────────────────────────────────────────────
 
+const BUCKET_NAME = "word-images";
+
 export function hasSupabaseStorage(): boolean {
   return !!(config.supabase.url && config.supabase.serviceKey);
 }
@@ -131,12 +133,19 @@ export async function uploadToSupabase(
   buffer: Buffer,
   contentType: string,
 ): Promise<string> {
-  const { url, serviceKey, bucket } = config.supabase;
+  const url = config.supabase.url;
+  const serviceKey = config.supabase.serviceKey;
   if (!url || !serviceKey) {
     throw new ImagePipelineError("upload", "supabase_no_credentials");
   }
 
-  const endpoint = `${url}/storage/v1/object/${bucket}/${path}`;
+  // eslint-disable-next-line no-console
+  console.log(
+    `[image/supabase] uploading to bucket="${BUCKET_NAME}" path="${path}" ` +
+      `url="${url.slice(0, 40)}…" keyLen=${serviceKey.length}`,
+  );
+
+  const endpoint = `${url}/storage/v1/object/${BUCKET_NAME}/${path}`;
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -153,11 +162,11 @@ export async function uploadToSupabase(
     throw new ImagePipelineError(
       "upload",
       `supabase_${res.status}`,
-      `Supabase Storage ${res.status} on bucket "${bucket}": ${snippet}`,
+      `Supabase Storage ${res.status} on bucket "${BUCKET_NAME}": ${snippet}`,
     );
   }
 
-  return `${url}/storage/v1/object/public/${bucket}/${path}`;
+  return `${url}/storage/v1/object/public/${BUCKET_NAME}/${path}`;
 }
 
 // ─── Claude prompt generation ──────────────────────────────────────────────
