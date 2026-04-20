@@ -657,7 +657,7 @@ export async function generateImages(req: Request, res: Response): Promise<void>
       let url: string;
       try {
         url = await uploadToSupabase(
-          `concept/${w.id}.webp`,
+          `concept/${w.id}.png`,
           image.buffer,
           image.contentType,
         );

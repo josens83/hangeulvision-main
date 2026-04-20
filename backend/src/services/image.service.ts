@@ -1,20 +1,18 @@
 /**
  * image.service.ts
  * ────────────────
- * Generates concept images for Korean vocabulary entries via:
- *   1. Claude          → derives a visual prompt from word + definition
- *   2. Stability AI    → renders the prompt to a 1024×1024 webp
- *   3. Supabase Storage → hosts the resulting webp
+ * Generates concept images for Korean vocabulary via:
+ *   1. Claude          → visual prompt from word + definition
+ *   2. Stability AI    → renders prompt to image (v1 JSON API)
+ *   3. Supabase Storage → hosts the resulting PNG
  *
- * Failure handling
- *   Each helper throws ImagePipelineError with a `step` + diagnostic
- *   `message`. The controller catches and surfaces that on the per-word
- *   result, so an operator can immediately see *why* a word was skipped:
- *     "claude_no_key", "stability_401", "supabase_404_bucket_not_found", etc.
+ * Uses the exact same Stability AI v1 endpoint and request format as
+ * KanjiVision (which works). Previous attempts with the v2beta FormData
+ * endpoint returned 401 despite a valid key — the v1 JSON endpoint
+ * accepts the same key without issues.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import FormData from "form-data";
 import { config } from "../config";
 import { anthropicClient } from "./claude.service";
 
@@ -28,17 +26,11 @@ export class ImagePipelineError extends Error {
   }
 }
 
-// ─── Stability AI ──────────────────────────────────────────────────────────
+// ─── Stability AI (v1 JSON API — same as KanjiVision) ──────────────────────
 
 const STABILITY_URL =
-  "https://api.stability.ai/v2beta/stable-image/generate/sd3";
+  "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
 
-/**
- * Reads the Stability API key and strips known operator mistakes:
- *   • leading/trailing whitespace or newlines (Railway env editor artefact)
- *   • accidental "Bearer " prefix already in the value
- *   • BOM / zero-width characters
- */
 function stabilityKey(): string {
   let raw = process.env.STABILITY_API_KEY ?? "";
   raw = raw.replace(/[\uFEFF\u200B\u200C\u200D]/g, "").trim();
@@ -52,6 +44,11 @@ export function hasStabilityCredentials(): boolean {
   return stabilityKey().length > 0;
 }
 
+/**
+ * Calls the Stability AI v1 text-to-image endpoint (JSON body, JSON response
+ * with base64 artifacts). This is byte-for-byte the same request format that
+ * KanjiVision uses successfully with the same API key.
+ */
 export async function generateImage(
   prompt: string,
 ): Promise<{ buffer: Buffer; contentType: string }> {
@@ -62,59 +59,42 @@ export async function generateImage(
 
   // eslint-disable-next-line no-console
   console.log(
-    `[image/stability] key present: true, length: ${key.length}, ` +
-      `prefix: "${key.slice(0, 5)}…", ` +
-      `charCodes[0..5]: [${[...key.slice(0, 6)].map((c) => c.charCodeAt(0)).join(",")}]`,
-  );
-
-  // Use the `form-data` npm package instead of Node.js global FormData.
-  // Node's built-in undici fetch + global FormData has a known issue where
-  // custom headers (Authorization) can get dropped or the multipart
-  // boundary can be malformed — this caused a persistent 401 that didn't
-  // reproduce on KanjiVision (which uses the same pattern via form-data).
-  const form = new FormData();
-  form.append("prompt", prompt);
-  form.append("model", "sd3-large-turbo");
-  form.append("aspect_ratio", "1:1");
-  form.append("output_format", "webp");
-
-  // getBuffer() serialises the full multipart body deterministically.
-  // getHeaders() returns { 'content-type': 'multipart/form-data; boundary=…' }.
-  const body = form.getBuffer();
-  const formHeaders = form.getHeaders();
-
-  const headers: Record<string, string> = {
-    ...formHeaders,
-    Authorization: `Bearer ${key}`,
-    Accept: "image/*",
-  };
-
-  // eslint-disable-next-line no-console
-  console.log(
-    `[image/stability] request headers: ${JSON.stringify({
-      "content-type": headers["content-type"]?.slice(0, 60),
-      Authorization: `Bearer ${key.slice(0, 5)}…(${key.length})`,
-      Accept: headers.Accept,
-    })}`,
+    `[image/stability] key: length=${key.length} prefix="${key.slice(0, 5)}…"`,
   );
 
   const res = await fetch(STABILITY_URL, {
     method: "POST",
-    headers,
-    body,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      text_prompts: [
+        { text: prompt, weight: 1 },
+        {
+          text: "text, watermark, logo, signature, blurry, low quality, nsfw",
+          weight: -1,
+        },
+      ],
+      cfg_scale: 7,
+      width: 1024,
+      height: 1024,
+      steps: 30,
+      samples: 1,
+    }),
   });
 
   // eslint-disable-next-line no-console
   console.log(
-    `[image/stability] response: ${res.status} ${res.statusText} ` +
-      `content-type: ${res.headers.get("content-type")}`,
+    `[image/stability] response: ${res.status} ${res.statusText}`,
   );
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     const snippet = text.slice(0, 300).replace(/\s+/g, " ");
     // eslint-disable-next-line no-console
-    console.error(`[image/stability] error body: ${snippet}`);
+    console.error(`[image/stability] error: ${snippet}`);
     throw new ImagePipelineError(
       "render",
       `stability_${res.status}`,
@@ -122,10 +102,21 @@ export async function generateImage(
     );
   }
 
-  const arrayBuf = await res.arrayBuffer();
+  const data = (await res.json()) as {
+    artifacts?: Array<{ base64: string; finishReason: string }>;
+  };
+
+  if (!data.artifacts?.[0]?.base64) {
+    throw new ImagePipelineError(
+      "render",
+      "stability_no_artifacts",
+      "Stability returned success but no image artifacts.",
+    );
+  }
+
   return {
-    buffer: Buffer.from(arrayBuf),
-    contentType: res.headers.get("content-type") ?? "image/webp",
+    buffer: Buffer.from(data.artifacts[0].base64, "base64"),
+    contentType: "image/png",
   };
 }
 
@@ -159,8 +150,6 @@ export async function uploadToSupabase(
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     const snippet = text.slice(0, 200).replace(/\s+/g, " ");
-    // Surface common Supabase failure modes verbatim — bucket not found,
-    // RLS policy denial, invalid service key, etc.
     throw new ImagePipelineError(
       "upload",
       `supabase_${res.status}`,
