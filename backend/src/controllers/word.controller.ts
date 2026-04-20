@@ -37,6 +37,7 @@ const searchSchema = z.object({
 /** Minimal include for list/grid views — enough to render word cards. */
 const listInclude = {
   examLevels: true,
+  visuals: true,
 } satisfies Prisma.WordInclude;
 
 /** Full include for single-word detail views. */

@@ -4,6 +4,7 @@ import type { Word } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import type { Grade } from "@/lib/srs";
 import { HanjaBreakdown } from "./HanjaBreakdown";
+import { conceptImageUrl } from "@/lib/visuals";
 
 export function WordStudy({ word }: { word: Word }) {
   const gradeWord = useStore((s) => s.gradeWord);
@@ -232,21 +233,37 @@ function PronounceButton({ text }: { text: string }) {
 }
 
 function ConceptArt({ word }: { word: Word }) {
-  // Placeholder "AI concept" art — in production replaced by Stability AI renders.
-  const gradientFor = (id: string) => {
-    const gradients = [
-      "from-indigo-200 via-brand-100 to-rose-200",
-      "from-emerald-200 via-brand-100 to-sky-200",
-      "from-amber-200 via-orange-100 to-pink-200",
-      "from-fuchsia-200 via-purple-100 to-indigo-200",
-    ];
-    return gradients[Math.abs(hash(id)) % gradients.length];
-  };
+  const imgUrl = conceptImageUrl(word as any);
+
+  if (imgUrl) {
+    return (
+      <div className="aspect-square w-full overflow-hidden">
+        <img
+          src={imgUrl}
+          alt={`AI concept image for ${word.word}`}
+          loading="lazy"
+          className="h-full w-full rounded-2xl object-cover"
+        />
+      </div>
+    );
+  }
+
+  // Fallback — gradient + emoji placeholder
+  const gradients = [
+    "from-indigo-200 via-brand-100 to-rose-200",
+    "from-emerald-200 via-brand-100 to-sky-200",
+    "from-amber-200 via-orange-100 to-pink-200",
+    "from-fuchsia-200 via-purple-100 to-indigo-200",
+  ];
+  const gradient = gradients[Math.abs(hash(word.id)) % gradients.length];
+
   return (
-    <div className={`aspect-[16/9] w-full bg-gradient-to-br ${gradientFor(word.id)} p-10 text-center`}>
+    <div className={`aspect-[16/9] w-full bg-gradient-to-br ${gradient} p-10 text-center`}>
       <div className="flex h-full flex-col items-center justify-center">
         <div className="text-6xl">{conceptEmoji(word)}</div>
-        <div className="mt-4 text-sm font-semibold text-ink-700">AI Concept · {word.definitionEn}</div>
+        <div className="mt-4 text-sm font-semibold text-ink-700">
+          Image coming soon · {word.definitionEn}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Hanja, Word } from "@/lib/types";
 import type { Grade } from "@/lib/srs";
+import { conceptImageUrl } from "@/lib/visuals";
 
 /**
  * VocaVision-style flashcard with gesture controls.
@@ -238,7 +239,7 @@ function CardFront({
         </button>
       </div>
       <div
-        className="mt-3 flex flex-1 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br"
+        className="mt-3 flex flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br"
         style={{ backgroundImage: gradientFor(word.id) }}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
@@ -246,19 +247,7 @@ function CardFront({
           setArt(art === "concept" ? "mnemonic" : "concept");
         }}
       >
-        <div className="text-center">
-          <div className="text-5xl sm:text-6xl">
-            {art === "concept" ? conceptEmoji(word) : mnemonicEmoji(word)}
-          </div>
-          <div className="mt-3 text-xs font-semibold text-ink-700">
-            {art === "concept" ? "AI Concept" : "AI Mnemonic"}
-          </div>
-          {art === "mnemonic" && word.mnemonic ? (
-            <div className="mt-1 max-w-[220px] text-[11px] text-ink-500">
-              {word.mnemonic.englishHint}
-            </div>
-          ) : null}
-        </div>
+        <ConceptOrEmoji word={word} art={art} />
       </div>
       <div className="mt-4 text-center">
         <div className="korean text-4xl font-bold text-ink-900 sm:text-5xl">{word.word}</div>
@@ -292,6 +281,37 @@ function CardBack({ word }: { word: Word }) {
               ≈ {s}
             </span>
           ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ConceptOrEmoji({ word, art }: { word: Word; art: "concept" | "mnemonic" }) {
+  const imgUrl = art === "concept" ? conceptImageUrl(word as any) : null;
+
+  if (imgUrl) {
+    return (
+      <img
+        src={imgUrl}
+        alt={word.word}
+        loading="lazy"
+        className="h-full w-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="text-center">
+      <div className="text-5xl sm:text-6xl">
+        {art === "concept" ? conceptEmoji(word) : mnemonicEmoji(word)}
+      </div>
+      <div className="mt-3 text-xs font-semibold text-ink-700">
+        {art === "concept" ? "AI Concept" : "AI Mnemonic"}
+      </div>
+      {art === "mnemonic" && word.mnemonic ? (
+        <div className="mt-1 max-w-[220px] text-[11px] text-ink-500">
+          {word.mnemonic.englishHint}
         </div>
       ) : null}
     </div>
