@@ -50,15 +50,7 @@ export function Navbar() {
         </nav>
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
-            <>
-              <Link href="/dashboard" className="btn-ghost">
-                {user.name.split(" ")[0]}
-                <span className="chip ml-1 bg-brand-500 text-white">{user.tier}</span>
-              </Link>
-              <button onClick={signOut} className="btn-outline">
-                Sign out
-              </button>
-            </>
+            <UserDropdown name={user.name} tier={user.tier} signOut={signOut} />
           ) : (
             <>
               <Link href="/signin" className="btn-ghost">
@@ -117,5 +109,67 @@ export function Navbar() {
         </div>
       ) : null}
     </header>
+  );
+}
+
+function UserDropdown({
+  name,
+  tier,
+  signOut,
+}: {
+  name: string;
+  tier: string;
+  signOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close on navigation.
+  useEffect(() => setOpen(false), [pathname]);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="btn-ghost"
+      >
+        {name.split(" ")[0]}
+        <span className="chip ml-1 bg-brand-500 text-white">{tier}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-card">
+            <DropLink href="/dashboard" label="Dashboard" />
+            <DropLink href="/bookmarks" label="Bookmarks" />
+            <DropLink href="/statistics" label="Statistics" />
+            <div className="my-1 border-t border-gray-100" />
+            <DropLink href="/settings" label="Settings" />
+            <DropLink href="/account" label="Account" />
+            <div className="my-1 border-t border-gray-100" />
+            <button
+              onClick={signOut}
+              className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+            >
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DropLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="block px-4 py-2 text-sm text-ink-700 hover:bg-gray-50"
+    >
+      {label}
+    </Link>
   );
 }

@@ -9,7 +9,11 @@ userRouter.use(authRequired);
 
 // Profile
 userRouter.get("/me", asyncHandler(c.me));
+userRouter.put("/me", asyncHandler(c.updateMe));
 userRouter.patch("/me", asyncHandler(c.updateMe));
+// Password + account
+userRouter.put("/password", asyncHandler(c.changePassword));
+userRouter.delete("/account", asyncHandler(c.deleteAccount));
 userRouter.get("/me/stats", asyncHandler(c.myStats));
 userRouter.get("/me/streak", asyncHandler(c.myStreak));
 userRouter.post("/me/avatar", asyncHandler(c.uploadAvatar));
