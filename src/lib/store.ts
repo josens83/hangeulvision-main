@@ -265,10 +265,9 @@ export const useStore = create<Store>()(
           };
         });
 
-        // 2. Fire-and-forget server write. Failures are ignored for now —
-        //    the local SM-2 schedule keeps the UX intact, and the next
-        //    `/progress/stats` fetch reconciles any drift.
+        // 2. Fire-and-forget: grade + bump daily goal progress.
         void api.post(`/progress/${encodeURIComponent(wordId)}/grade`, { grade });
+        void api.post("/goals/progress");
       },
 
       getEntry(wordId) {

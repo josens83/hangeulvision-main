@@ -120,6 +120,11 @@ model User {
   tier           Tier     @default(free)
   role           Role     @default(user)
   streakDays     Int      @default(0)
+  bestStreak     Int      @default(0)
+  dailyGoal      Int      @default(20)
+  dailyProgress  Int      @default(0)
+  lastGoalReset  DateTime?
+  lastStudyDate  DateTime? @db.Date
   lastActiveAt   DateTime?
   emailVerifiedAt DateTime?
   createdAt      DateTime @default(now())

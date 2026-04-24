@@ -10,6 +10,7 @@ import { prisma } from "./prisma";
 import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bookmarkRouter } from "./routes/bookmark.routes";
+import { goalsRouter } from "./routes/goals.routes";
 import { internalRouter } from "./routes/internal.routes";
 import { learningRouter } from "./routes/learning.routes";
 import { packageRouter } from "./routes/package.routes";
@@ -90,6 +91,7 @@ function createApp() {
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
   app.use("/bookmarks", bookmarkRouter);
+  app.use("/goals", goalsRouter);
   app.use("/words", wordRouter);
   app.use("/learning", learningRouter);
   app.use("/progress", progressRouter);
