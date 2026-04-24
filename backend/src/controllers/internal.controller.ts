@@ -36,6 +36,7 @@ import {
   ImagePipelineError,
   uploadToSupabase,
 } from "../services/image.service";
+import { invalidateWordCounts } from "../utils/cache";
 import { badRequest } from "../utils/http";
 import { stub } from "./_stub";
 
@@ -339,6 +340,8 @@ async function runOneBatch(
   console.log(
     `[generate-words] result · created=${created.length} skipped=${skipped} errors=${errors.length}`,
   );
+
+  if (created.length > 0) invalidateWordCounts();
 
   return {
     created: created.length,

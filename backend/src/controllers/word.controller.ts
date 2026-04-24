@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../prisma";
 import { badRequest, notFound } from "../utils/http";
+import * as cache from "../utils/cache";
 
 // ─── Validation ────────────────────────────────────────────────────────────
 
@@ -157,6 +158,12 @@ export async function daily(_req: Request, res: Response) {
  * the secondary tag counts (WordExamLevel) so admin dashboards can show both.
  */
 export async function count(_req: Request, res: Response) {
+  const cached = cache.getWordCount<object>();
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
   const [primary, secondary, total] = await prisma.$transaction([
     prisma.word.groupBy({
       by: ["exam"],
@@ -180,11 +187,9 @@ export async function count(_req: Request, res: Response) {
       }),
     );
 
-  res.json({
-    total,
-    primary: buildMap(primary),
-    secondary: buildMap(secondary),
-  });
+  const result = { total, primary: buildMap(primary), secondary: buildMap(secondary) };
+  cache.setWordCount(result);
+  res.json(result);
 }
 
 /** GET /words/by-exam/:exam */

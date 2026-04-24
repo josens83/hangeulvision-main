@@ -1,15 +1,16 @@
 import type { NextFunction, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { HttpError } from "../utils/http";
+import { logger } from "../utils/logger";
 
-/** Centralised error handler. Must be registered *after* all routes. */
 export function errorHandler(
   err: unknown,
   _req: Request,
   res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ) {
+  // ─── Zod validation ─────────────────────────────────────
   if (err instanceof ZodError) {
     return res.status(400).json({
       error: "validation_error",
@@ -18,6 +19,7 @@ export function errorHandler(
     });
   }
 
+  // ─── App-level HTTP error ───────────────────────────────
   if (err instanceof HttpError) {
     return res.status(err.status).json({
       error: err.code ?? httpCode(err.status),
@@ -26,15 +28,56 @@ export function errorHandler(
     });
   }
 
-  // Fallback — never leak internal messages in production.
+  // ─── Prisma known errors ────────────────────────────────
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = err.meta as Record<string, unknown> | undefined;
+    switch (err.code) {
+      case "P2002":
+        return res.status(409).json({
+          error: "conflict",
+          message: "A record with this value already exists.",
+          target: meta?.target,
+        });
+      case "P2025":
+        return res.status(404).json({
+          error: "not_found",
+          message: "Record not found.",
+        });
+      default:
+        logger.warn(`Prisma known error: ${err.code}`);
+        return res.status(400).json({
+          error: "database_error",
+          message: err.message,
+          code: err.code,
+        });
+    }
+  }
+
+  // ─── JWT errors ─────────────────────────────────────────
+  if (err instanceof Error) {
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        error: "unauthorized",
+        message: "Invalid token.",
+      });
+    }
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({
+        error: "unauthorized",
+        message: "Token expired.",
+      });
+    }
+  }
+
+  // ─── Fallback ───────────────────────────────────────────
   const message =
     process.env.NODE_ENV === "production"
       ? "Internal server error"
       : err instanceof Error
         ? err.message
         : String(err);
-  // eslint-disable-next-line no-console
-  console.error("[error]", err);
+
+  logger.error(`Unhandled error: ${err instanceof Error ? err.message : err}`);
   res.status(500).json({ error: "internal_error", message });
 }
 

@@ -1,9 +1,12 @@
+import compression from "compression";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { config } from "./config";
 import { errorHandler } from "./middleware/error.middleware";
+import { rateLimiter } from "./middleware/rateLimiter.middleware";
+import { prisma } from "./prisma";
 import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { internalRouter } from "./routes/internal.routes";
@@ -15,15 +18,26 @@ import { progressRouter } from "./routes/progress.routes";
 import { subscriptionRouter } from "./routes/subscription.routes";
 import { userRouter } from "./routes/user.routes";
 import { wordRouter } from "./routes/word.routes";
+import { logger } from "./utils/logger";
 
 function createApp() {
   const app = express();
 
-  // ─── CORS (must be registered BEFORE body parser + routes) ─────────
-  //
-  // Allowlist: Vercel production, localhost for dev, plus anything in
-  // CORS_ORIGIN (singular, as set in Railway Variables) or CORS_ORIGINS
-  // (plural, comma-separated, legacy config.ts path).
+  // ─── Security + Performance (before everything) ─────────
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(
+    compression({
+      level: 6,
+      threshold: 1024,
+      filter: (req, res) => {
+        if (req.headers["x-no-compression"]) return false;
+        return compression.filter(req, res);
+      },
+    }),
+  );
+  app.use(rateLimiter);
+
+  // ─── CORS ───────────────────────────────────────────────
   const ALLOWED_ORIGINS: string[] = [
     "https://hangeulvision-main.vercel.app",
     "https://hangeulvision.app",
@@ -34,17 +48,14 @@ function createApp() {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
       origin(origin, cb) {
-        // No-origin requests (curl, server-to-server, mobile apps) always pass.
         if (!origin) return cb(null, true);
         if (ALLOWED_ORIGINS.includes("*") || ALLOWED_ORIGINS.includes(origin)) {
           return cb(null, true);
         }
-        // eslint-disable-next-line no-console
-        console.warn(`[cors] blocked origin: ${origin} (allowed: ${ALLOWED_ORIGINS.join(", ")})`);
+        logger.warn(`CORS blocked origin: ${origin}`);
         return cb(new Error(`CORS: origin ${origin} is not allowed`));
       },
       credentials: true,
@@ -52,6 +63,8 @@ function createApp() {
       allowedHeaders: ["Content-Type", "Authorization", "X-Internal-Key"],
     }),
   );
+
+  // ─── Body parsers + logging ─────────────────────────────
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(config.env === "production" ? "combined" : "dev"));
@@ -60,7 +73,7 @@ function createApp() {
   app.get("/", (_req, res) => {
     res.json({
       service: "hangeulvision-backend",
-      version: "0.1.0",
+      version: "0.2.0",
       status: "ok",
       env: config.env,
     });
@@ -69,7 +82,6 @@ function createApp() {
     res.json({ status: "ok", service: "hangeulvision" });
   });
   app.get("/ready", (_req, res) => {
-    // TODO: ping Prisma once DATABASE_URL is configured.
     res.json({ status: "ready" });
   });
 
@@ -97,10 +109,33 @@ function createApp() {
 
 export const app = createApp();
 
-// Always bind when this file is the entry point. Railway sets $PORT at runtime
-// (we honor it); local / Docker default to 8080 to match VocaVision.
+// ─── Server + graceful shutdown ─────────────────────────────────────────────
+
 const port = Number(process.env.PORT ?? 8080);
-app.listen(port, "0.0.0.0", () => {
-  // eslint-disable-next-line no-console
-  console.log(`🚀 HangeulVision API running on port ${port}`);
+const server = app.listen(port, "0.0.0.0", () => {
+  logger.info(`🚀 HangeulVision API running on port ${port}`);
+});
+
+async function shutdown(signal: string) {
+  logger.info(`${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    logger.info("Server closed, DB disconnected");
+    process.exit(0);
+  });
+  setTimeout(() => {
+    logger.error("Shutdown timed out, forcing exit");
+    process.exit(1);
+  }, 10_000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("uncaughtException", (err) => {
+  logger.error(`Uncaught exception: ${err.message}`);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  logger.error(`Unhandled rejection: ${reason}`);
+  process.exit(1);
 });
