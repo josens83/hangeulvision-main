@@ -5,6 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Hanja, Word } from "@/lib/types";
 import type { Grade } from "@/lib/srs";
 import { conceptImageUrl } from "@/lib/visuals";
+import { BookmarkButton } from "./BookmarkButton";
 
 /**
  * VocaVision-style flashcard with gesture controls.
@@ -227,16 +228,19 @@ function CardFront({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <span className="chip">{word.exam.replace(/_/g, " ")} · L{word.level}</span>
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            setArt(art === "concept" ? "mnemonic" : "concept");
-          }}
-          className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-ink-700 hover:bg-gray-200"
-        >
-          {art === "concept" ? "🎨 Concept" : "🪄 Mnemonic"}
-        </button>
+        <div className="flex items-center gap-1">
+          <BookmarkButton wordId={word.id} />
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setArt(art === "concept" ? "mnemonic" : "concept");
+            }}
+            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-ink-700 hover:bg-gray-200"
+          >
+            {art === "concept" ? "🎨 Concept" : "🪄 Mnemonic"}
+          </button>
+        </div>
       </div>
       <div
         className="mt-3 flex flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br"

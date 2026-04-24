@@ -4,6 +4,7 @@ import type { Word } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import type { Grade } from "@/lib/srs";
 import { HanjaBreakdown } from "./HanjaBreakdown";
+import { BookmarkButton } from "./BookmarkButton";
 import { conceptImageUrl } from "@/lib/visuals";
 
 export function WordStudy({ word }: { word: Word }) {
@@ -26,7 +27,10 @@ export function WordStudy({ word }: { word: Word }) {
             </div>
             <p className="mt-3 text-xl text-ink-700">{word.definitionEn}</p>
           </div>
-          <PronounceButton text={word.word} />
+          <div className="flex items-center gap-2">
+            <BookmarkButton wordId={word.id} />
+            <PronounceButton text={word.word} />
+          </div>
         </div>
       </div>
 
