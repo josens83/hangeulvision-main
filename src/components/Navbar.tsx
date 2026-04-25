@@ -146,6 +146,7 @@ function UserDropdown({
           <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-card">
             <DropLink href="/dashboard" label="Dashboard" />
             <DropLink href="/bookmarks" label="Bookmarks" />
+            <DropLink href="/achievements" label="Achievements" />
             <DropLink href="/statistics" label="Statistics" />
             <div className="my-1 border-t border-gray-100" />
             <DropLink href="/settings" label="Settings" />

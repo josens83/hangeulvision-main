@@ -265,9 +265,19 @@ export const useStore = create<Store>()(
           };
         });
 
-        // 2. Fire-and-forget: grade + bump daily goal progress.
+        // 2. Fire-and-forget: grade + goal progress + achievement check.
         void api.post(`/progress/${encodeURIComponent(wordId)}/grade`, { grade });
         void api.post("/goals/progress");
+        void api.post<{ newlyUnlocked: Array<{ id: string; name: string; icon: string | null }> }>(
+          "/achievements/check",
+        ).then((res) => {
+          if (res.ok && res.data?.newlyUnlocked?.length) {
+            // Dynamic import to avoid circular deps
+            import("@/components/AchievementToast").then(({ showAchievementToasts }) => {
+              showAchievementToasts(res.data!.newlyUnlocked);
+            });
+          }
+        });
       },
 
       getEntry(wordId) {

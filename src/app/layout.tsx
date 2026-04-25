@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { AuthBoot } from "@/components/AuthBoot";
+import { AchievementToastContainer } from "@/components/AchievementToast";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hangeulvision-main.vercel.app"),
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <Footer />
         <BottomTabBar />
+        <AchievementToastContainer />
         <InstallPrompt />
         <script
           dangerouslySetInnerHTML={{

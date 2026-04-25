@@ -7,6 +7,7 @@ import { config } from "./config";
 import { errorHandler } from "./middleware/error.middleware";
 import { rateLimiter } from "./middleware/rateLimiter.middleware";
 import { prisma } from "./prisma";
+import { achievementRouter } from "./routes/achievement.routes";
 import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bookmarkRouter } from "./routes/bookmark.routes";
@@ -91,6 +92,7 @@ function createApp() {
   // ─── Routes ─────────────────────────────────────────────
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
+  app.use("/achievements", achievementRouter);
   app.use("/bookmarks", bookmarkRouter);
   app.use("/goals", goalsRouter);
   app.use("/words", wordRouter);
