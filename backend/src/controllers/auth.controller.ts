@@ -189,8 +189,134 @@ export async function logout(_req: Request, res: Response) {
 
 // ─── Not yet implemented ───────────────────────────────────────────────────
 // These follow in their own PRs once the product surface needs them.
-export const googleStart = stub("auth.googleStart");
-export const googleCallback = stub("auth.googleCallback");
+// ─── Google OAuth ──────────────────────────────────────────────────────────
+
+const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
+
+function hasGoogleConfig(): boolean {
+  return !!(config.google.clientId && config.google.clientSecret);
+}
+
+/** GET /auth/google — redirect to Google consent screen */
+export async function googleStart(req: Request, res: Response) {
+  if (!hasGoogleConfig()) {
+    res.status(501).json({ error: "google_not_configured" });
+    return;
+  }
+
+  const params = new URLSearchParams({
+    client_id: config.google.clientId,
+    redirect_uri: config.google.redirectUri,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent",
+  });
+
+  res.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
+}
+
+/** GET /auth/callback/google?code=... — exchange code, create/link user, redirect with JWT */
+export async function googleCallback(req: Request, res: Response) {
+  const code = req.query.code as string | undefined;
+  const frontendOrigin = config.google.frontendOrigin;
+
+  if (!code) {
+    res.redirect(`${frontendOrigin}/auth/callback/google?error=no_code`);
+    return;
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: config.google.clientId,
+        client_secret: config.google.clientSecret,
+        redirect_uri: config.google.redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text().catch(() => "");
+      // eslint-disable-next-line no-console
+      console.error("[google] token exchange failed:", tokenRes.status, err.slice(0, 200));
+      res.redirect(`${frontendOrigin}/auth/callback/google?error=token_exchange_failed`);
+      return;
+    }
+
+    const tokenData = (await tokenRes.json()) as { access_token: string };
+
+    // Fetch user info
+    const userInfoRes = await fetch(GOOGLE_USERINFO_URL, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+
+    if (!userInfoRes.ok) {
+      res.redirect(`${frontendOrigin}/auth/callback/google?error=userinfo_failed`);
+      return;
+    }
+
+    const profile = (await userInfoRes.json()) as {
+      sub: string;
+      email: string;
+      name: string;
+      picture?: string;
+    };
+
+    if (!profile.email) {
+      res.redirect(`${frontendOrigin}/auth/callback/google?error=no_email`);
+      return;
+    }
+
+    // Find or create user
+    let user = await prisma.user.findFirst({
+      where: { OR: [{ googleId: profile.sub }, { email: profile.email.toLowerCase() }] },
+    });
+
+    if (user) {
+      // Link Google ID if not yet linked
+      if (!user.googleId) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { googleId: profile.sub, avatarUrl: profile.picture ?? user.avatarUrl },
+        });
+      }
+    } else {
+      // Auto-create account
+      user = await prisma.user.create({
+        data: {
+          email: profile.email.toLowerCase(),
+          name: profile.name || profile.email.split("@")[0],
+          provider: "GOOGLE",
+          googleId: profile.sub,
+          avatarUrl: profile.picture ?? null,
+          locale: "en",
+          lastActiveAt: new Date(),
+        },
+      });
+    }
+
+    // Issue tokens
+    const tokens = issueTokens(user);
+
+    // Redirect to frontend callback with tokens
+    const params = new URLSearchParams({
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
+    res.redirect(`${frontendOrigin}/auth/callback/google?${params.toString()}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[google] OAuth error:", err);
+    res.redirect(`${frontendOrigin}/auth/callback/google?error=server_error`);
+  }
+}
 export const updateMe = stub("auth.updateMe");
 export const changePassword = stub("auth.changePassword");
 export const deleteAccount = stub("auth.deleteAccount");

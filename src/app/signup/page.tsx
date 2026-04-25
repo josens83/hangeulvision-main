@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
+import { GoogleSignInButton, OrDivider } from "@/components/GoogleSignInButton";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -15,8 +16,12 @@ export default function SignUpPage() {
     <div className="mx-auto max-w-md py-10">
       <h1 className="text-3xl font-bold text-ink-900">Create your free account</h1>
       <p className="mt-1 text-sm text-ink-500">800 TOPIK I words — no card, no catch.</p>
+      <div className="card mt-6 space-y-3 p-6">
+        <GoogleSignInButton label="Sign up with Google" />
+        <OrDivider />
+      </div>
       <form
-        className="card mt-6 space-y-3 p-6"
+        className="card space-y-3 p-6 -mt-px rounded-t-none border-t-0"
         onSubmit={async (e) => {
           e.preventDefault();
           if (submitting) return;

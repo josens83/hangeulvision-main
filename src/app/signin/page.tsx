@@ -3,6 +3,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { GoogleSignInButton, OrDivider } from "@/components/GoogleSignInButton";
 
 export default function SignInPage() {
   return (
@@ -37,8 +38,12 @@ function SignInInner() {
           {notice}
         </div>
       ) : null}
+      <div className="card mt-6 space-y-3 p-6">
+        <GoogleSignInButton label="Sign in with Google" />
+        <OrDivider />
+      </div>
       <form
-        className="card mt-6 space-y-3 p-6"
+        className="card space-y-3 p-6"
         onSubmit={async (e) => {
           e.preventDefault();
           if (submitting) return;

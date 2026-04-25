@@ -32,6 +32,20 @@ export const config = {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    redirectUri:
+      process.env.GOOGLE_REDIRECT_URI ??
+      (process.env.NODE_ENV === "production"
+        ? "https://hangeulvision-main-production.up.railway.app/auth/google/callback"
+        : "http://localhost:8080/auth/google/callback"),
+    frontendOrigin:
+      process.env.FRONTEND_URL ??
+      (process.env.NODE_ENV === "production"
+        ? "https://hangeulvision-main.vercel.app"
+        : "http://localhost:3000"),
+  },
   internalApiKey: process.env.INTERNAL_API_KEY ?? "",
   paddle: {
     vendorId: process.env.PADDLE_VENDOR_ID ?? "",

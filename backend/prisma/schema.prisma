@@ -108,6 +108,12 @@ enum NotificationKind {
   system
 }
 
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  KAKAO
+}
+
 // ─── Users & auth ──────────────────────────────────────────────────────────
 
 model User {
@@ -115,7 +121,9 @@ model User {
   email          String   @unique
   name           String
   passwordHash   String?
+  provider       AuthProvider @default(EMAIL)
   googleId       String?  @unique
+  avatarUrl      String?
   locale         String   @default("en")
   tier           Tier     @default(free)
   role           Role     @default(user)
