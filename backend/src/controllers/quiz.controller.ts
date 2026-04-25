@@ -178,3 +178,53 @@ export async function submitQuiz(req: Request, res: Response) {
 
   res.json({ score, total, percentage, results });
 }
+
+/** GET /quiz/level-test — mixed difficulty placement test */
+export async function levelTest(req: Request, res: Response) {
+  uid(req);
+  const exam = (req.query.exam as string) ?? "TOPIK_I";
+  const words = await prisma.word.findMany({
+    where: { exam: exam as any, active: true },
+    select: { id: true, word: true, definitionEn: true, level: true },
+  });
+  if (words.length < 4) { res.status(400).json({ error: "not_enough_words" }); return; }
+
+  // Sort by level, take 20 spread across levels
+  const sorted = shuffle(words).sort((a, b) => a.level - b.level);
+  const selected = sorted.slice(0, Math.min(20, sorted.length));
+
+  const questions = selected.map((w) => {
+    const distractors = shuffle(words.filter((d) => d.id !== w.id)).slice(0, 3);
+    const options = shuffle([w.definitionEn, ...distractors.map((d) => d.definitionEn)]);
+    return { wordId: w.id, word: w.word, level: w.level, options, correctIndex: options.indexOf(w.definitionEn) };
+  });
+
+  res.json({ questions, totalQuestions: questions.length, exam });
+}
+
+const levelTestSubmit = z.object({
+  answers: z.array(z.object({ wordId: z.string(), selectedIndex: z.number(), correct: z.boolean() })),
+  exam: z.string().optional(),
+});
+
+/** POST /quiz/level-test/submit */
+export async function submitLevelTest(req: Request, res: Response) {
+  const userId = uid(req);
+  const body = levelTestSubmit.parse(req.body);
+  const correct = body.answers.filter((a) => a.correct).length;
+  const total = body.answers.length;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  let recommendedLevel: number;
+  let label: string;
+  if (pct >= 90) { recommendedLevel = 3; label = "Advanced"; }
+  else if (pct >= 60) { recommendedLevel = 2; label = "Intermediate"; }
+  else { recommendedLevel = 1; label = "Beginner"; }
+
+  // Save to user (fire-and-forget schema flexibility — just store in streakDays temporarily or a separate field)
+  await prisma.quiz.create({
+    data: { userId, exam: (body.exam as any) ?? "TOPIK_I", score: correct, total, completedAt: new Date(), payload: { type: "level_test", recommendedLevel } as any },
+  });
+
+  res.json({ score: correct, total, percentage: pct, recommendedLevel, label });
+}

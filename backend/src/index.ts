@@ -13,6 +13,7 @@ import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bookmarkRouter } from "./routes/bookmark.routes";
 import { chatRouter } from "./routes/chat.routes";
+import { collectionRouter } from "./routes/collection.routes";
 import { deckRouter } from "./routes/deck.routes";
 import { goalsRouter } from "./routes/goals.routes";
 import { internalRouter } from "./routes/internal.routes";
@@ -112,6 +113,7 @@ function createApp() {
   app.use("/announcements", announcementRouter);
   app.use("/bookmarks", bookmarkRouter);
   app.use("/chat", chatRouter);
+  app.use("/collections", collectionRouter);
   app.use("/decks", deckRouter);
   app.use("/goals", goalsRouter);
   app.use("/words", wordRouter);

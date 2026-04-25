@@ -154,6 +154,7 @@ function UserDropdown({
             <DropLink href="/statistics" label="Statistics" />
             <div className="my-1 border-t border-gray-100" />
             <DropLink href="/settings" label="Settings" />
+            <DropLink href="/my" label="My subscription" />
             <DropLink href="/account" label="Account" />
             <div className="my-1 border-t border-gray-100" />
             <button

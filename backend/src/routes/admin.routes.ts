@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as c from "../controllers/admin.controller";
 import * as ac from "../controllers/announcement.controller";
+import * as cc from "../controllers/collection.controller";
 import * as sc from "../controllers/support.controller";
 import { authRequired, requireRole } from "../middleware/auth.middleware";
 import { asyncHandler } from "../utils/http";
@@ -32,6 +33,10 @@ adminRouter.post("/image-queue/:id/retry", asyncHandler(c.retryImage));
 
 // Payments audit
 adminRouter.get("/payments", asyncHandler(c.listPayments));
+
+// Collections
+adminRouter.post("/collections", asyncHandler(cc.adminCreate));
+adminRouter.delete("/collections/:id", asyncHandler(cc.adminDelete));
 
 // Announcements
 adminRouter.post("/announcements", asyncHandler(ac.create));
