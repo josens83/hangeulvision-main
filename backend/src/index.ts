@@ -69,7 +69,17 @@ function createApp() {
   );
 
   // ─── Body parsers + logging ─────────────────────────────
-  app.use(express.json({ limit: "2mb" }));
+  // Capture rawBody for Paddle webhook signature verification.
+  app.use(
+    express.json({
+      limit: "2mb",
+      verify: (req: express.Request & { rawBody?: string }, _res, buf) => {
+        if (req.url?.includes("/paddle/webhook")) {
+          req.rawBody = buf.toString();
+        }
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(config.env === "production" ? "combined" : "dev"));
 

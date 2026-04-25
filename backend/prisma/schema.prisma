@@ -108,6 +108,13 @@ enum NotificationKind {
   system
 }
 
+enum SubscriptionStatus {
+  NONE
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
 enum AuthProvider {
   EMAIL
   GOOGLE
@@ -125,8 +132,13 @@ model User {
   googleId       String?  @unique
   avatarUrl      String?
   locale         String   @default("en")
-  tier           Tier     @default(free)
-  role           Role     @default(user)
+  tier               Tier     @default(free)
+  role               Role     @default(user)
+  subscriptionStatus SubscriptionStatus @default(NONE)
+  subscriptionId     String?  // Paddle subscription ID
+  subscriptionPlan   String?  // "basic_monthly", "premium_yearly", etc.
+  subscriptionEnd    DateTime?
+  autoRenewal        Boolean  @default(false)
   streakDays     Int      @default(0)
   bestStreak     Int      @default(0)
   dailyGoal      Int      @default(20)

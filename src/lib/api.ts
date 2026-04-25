@@ -128,6 +128,12 @@ export const api = {
       method: "POST",
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
+  put: <T>(path: string, body?: unknown, init?: RequestInit) =>
+    request<T>(path, {
+      ...init,
+      method: "PUT",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }),
   patch: <T>(path: string, body?: unknown, init?: RequestInit) =>
     request<T>(path, {
       ...init,

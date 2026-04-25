@@ -5,12 +5,9 @@ import { asyncHandler } from "../utils/http";
 
 export const paddleRouter = Router();
 
-// Webhook needs the raw body for signature verification.
-paddleRouter.post(
-  "/webhook",
-  express.raw({ type: "*/*", limit: "2mb" }),
-  asyncHandler(c.webhook),
-);
+// Webhook — no auth (Paddle calls directly; signature verified in controller).
+// rawBody is captured by the global express.json verify callback in index.ts.
+paddleRouter.post("/webhook", asyncHandler(c.webhook));
 
 // Authenticated endpoints
 paddleRouter.post("/checkout", authRequired, asyncHandler(c.createCheckout));

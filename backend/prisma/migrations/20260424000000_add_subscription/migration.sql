@@ -1,0 +1,7 @@
+-- Subscription tracking
+CREATE TYPE "SubscriptionStatus" AS ENUM ('NONE', 'ACTIVE', 'CANCELLED', 'EXPIRED');
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT 'NONE';
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionId" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionPlan" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionEnd" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "autoRenewal" BOOLEAN NOT NULL DEFAULT false;

@@ -51,6 +51,12 @@ export const config = {
     vendorId: process.env.PADDLE_VENDOR_ID ?? "",
     apiKey: process.env.PADDLE_API_KEY ?? "",
     webhookSecret: process.env.PADDLE_WEBHOOK_SECRET ?? "",
+    prices: {
+      basicMonthly: process.env.PADDLE_PRICE_ID_BASIC_MONTHLY ?? "",
+      basicYearly: process.env.PADDLE_PRICE_ID_BASIC_YEARLY ?? "",
+      premiumMonthly: process.env.PADDLE_PRICE_ID_PREMIUM_MONTHLY ?? "",
+      premiumYearly: process.env.PADDLE_PRICE_ID_PREMIUM_YEARLY ?? "",
+    },
     products: {
       basic: process.env.PADDLE_PRODUCT_BASIC ?? "",
       premium: process.env.PADDLE_PRODUCT_PREMIUM ?? "",
