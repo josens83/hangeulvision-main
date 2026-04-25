@@ -44,8 +44,9 @@ export function Footer() {
           <div className="mb-2 font-semibold text-ink-900">Company</div>
           <ul className="space-y-1.5">
             <li>Unipath &middot; 유니패스</li>
-            <li><Link href="/legal/terms" className="hover:text-brand-600">Terms</Link></li>
-            <li><Link href="/legal/privacy" className="hover:text-brand-600">Privacy</Link></li>
+            <li><Link href="/terms" className="hover:text-brand-600">Terms</Link></li>
+            <li><Link href="/privacy" className="hover:text-brand-600">Privacy</Link></li>
+            <li><Link href="/refund-policy" className="hover:text-brand-600">Refund</Link></li>
             <li><Link href="/contact" className="hover:text-brand-600">Contact</Link></li>
             <li><Link href="/cs" className="hover:text-brand-600">Help / FAQ</Link></li>
           </ul>

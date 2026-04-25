@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/error.middleware";
 import { rateLimiter } from "./middleware/rateLimiter.middleware";
 import { prisma } from "./prisma";
 import { achievementRouter } from "./routes/achievement.routes";
+import { announcementRouter } from "./routes/announcement.routes";
 import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bookmarkRouter } from "./routes/bookmark.routes";
@@ -108,6 +109,7 @@ function createApp() {
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
   app.use("/achievements", achievementRouter);
+  app.use("/announcements", announcementRouter);
   app.use("/bookmarks", bookmarkRouter);
   app.use("/chat", chatRouter);
   app.use("/decks", deckRouter);
