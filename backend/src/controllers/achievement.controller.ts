@@ -100,6 +100,10 @@ export async function check(req: Request, res: Response) {
         data: { userId, achievementId: a.id, progress: currentValue },
       });
       newlyUnlocked.push({ id: a.id, slug: a.slug, name: a.name, icon: a.icon });
+      // Fire notification
+      import("../services/notification.service").then((m) =>
+        m.createNotification(userId, "achievement", `${a.icon ?? "🏅"} Achievement unlocked!`, a.name),
+      ).catch(() => {});
     }
   }
 

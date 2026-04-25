@@ -147,6 +147,8 @@ model User {
   lastStudyDate  DateTime? @db.Date
   lastActiveAt   DateTime?
   emailVerifiedAt DateTime?
+  resetToken      String?
+  resetTokenExp   DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -163,6 +165,7 @@ model User {
   leagueEntries  LeagueParticipant[]
   quizzes        Quiz[]
   chats          Chat[]
+  supportTickets SupportTicket[]
 
   @@index([tier])
   @@index([createdAt])
@@ -637,4 +640,22 @@ model ChatMessage {
   chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId, createdAt])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  name      String?
+  category  String
+  subject   String
+  message   String
+  status    String   @default("OPEN")
+  priority  String   @default("NORMAL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }

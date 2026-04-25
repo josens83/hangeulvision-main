@@ -46,11 +46,8 @@ export function Footer() {
             <li>Unipath &middot; 유니패스</li>
             <li><Link href="/legal/terms" className="hover:text-brand-600">Terms</Link></li>
             <li><Link href="/legal/privacy" className="hover:text-brand-600">Privacy</Link></li>
-            <li>
-              <a href="mailto:contact@hangeulvision.app" className="hover:text-brand-600">
-                Contact
-              </a>
-            </li>
+            <li><Link href="/contact" className="hover:text-brand-600">Contact</Link></li>
+            <li><Link href="/cs" className="hover:text-brand-600">Help / FAQ</Link></li>
           </ul>
         </div>
       </div>

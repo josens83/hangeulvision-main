@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 import { useStore } from "@/lib/store";
 
 const LINKS = [
@@ -51,7 +52,10 @@ export function Navbar() {
         </nav>
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
-            <UserDropdown name={user.name} tier={user.tier} signOut={signOut} />
+            <>
+              <NotificationBell />
+              <UserDropdown name={user.name} tier={user.tier} signOut={signOut} />
+            </>
           ) : (
             <>
               <Link href="/signin" className="btn-ghost">

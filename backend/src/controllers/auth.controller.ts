@@ -121,6 +121,12 @@ export async function signup(req: Request, res: Response) {
   });
 
   const tokens = issueTokens(user);
+
+  // Fire-and-forget welcome email
+  import("../services/email.service").then((m) =>
+    m.sendWelcomeEmail(user.email, user.name),
+  ).catch(() => {});
+
   res.status(201).json({ user: serializeUser(user), ...tokens });
 }
 
@@ -322,5 +328,46 @@ export const changePassword = stub("auth.changePassword");
 export const deleteAccount = stub("auth.deleteAccount");
 export const requestVerification = stub("auth.requestVerification");
 export const confirmVerification = stub("auth.confirmVerification");
-export const forgotPassword = stub("auth.forgotPassword");
-export const resetPassword = stub("auth.resetPassword");
+/** POST /auth/password/forgot */
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = z.object({ email: z.string().email() }).parse(req.body);
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  // Always return success to prevent email enumeration.
+  if (!user) { res.json({ sent: true }); return; }
+
+  const crypto = await import("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = new Date(Date.now() + 3600_000); // 1 hour
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { resetToken: token, resetTokenExp: expiry },
+  });
+
+  import("../services/email.service").then((m) =>
+    m.sendPasswordResetEmail(user.email, token),
+  ).catch(() => {});
+
+  res.json({ sent: true });
+}
+
+/** POST /auth/password/reset */
+export async function resetPassword(req: Request, res: Response) {
+  const body = z.object({
+    token: z.string().min(1),
+    newPassword: z.string().min(8).max(128),
+  }).parse(req.body);
+
+  const user = await prisma.user.findFirst({
+    where: { resetToken: body.token, resetTokenExp: { gte: new Date() } },
+  });
+  if (!user) { res.status(400).json({ error: "invalid_token", message: "Token is invalid or expired." }); return; }
+
+  const hash = await bcrypt.hash(body.newPassword, 12);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: hash, resetToken: null, resetTokenExp: null },
+  });
+
+  res.json({ message: "Password reset successfully." });
+}

@@ -14,6 +14,8 @@ import { bookmarkRouter } from "./routes/bookmark.routes";
 import { goalsRouter } from "./routes/goals.routes";
 import { internalRouter } from "./routes/internal.routes";
 import { learningRouter } from "./routes/learning.routes";
+import { notificationRouter } from "./routes/notification.routes";
+import { supportRouter } from "./routes/support.routes";
 import { packageRouter } from "./routes/package.routes";
 import { paddleRouter } from "./routes/paddle.routes";
 import { paymentsRouter } from "./routes/payments.routes";
@@ -113,6 +115,8 @@ function createApp() {
   app.use("/subscription", subscriptionRouter);
   app.use("/payments", paymentsRouter);
   app.use("/paddle", paddleRouter);
+  app.use("/notifications", notificationRouter);
+  app.use("/support", supportRouter);
   app.use("/admin", adminRouter);
   app.use("/internal", internalRouter);
 

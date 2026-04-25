@@ -76,6 +76,11 @@ function SignInInner() {
           />
         </label>
         {error ? <div className="text-sm text-rose-600">{error}</div> : null}
+        <div className="text-right">
+          <Link href="/auth/forgot-password" className="text-xs text-brand-600 font-semibold">
+            Forgot password?
+          </Link>
+        </div>
         <button className="btn-primary w-full" type="submit" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>
