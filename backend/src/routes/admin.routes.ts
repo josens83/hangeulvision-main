@@ -34,6 +34,10 @@ adminRouter.post("/image-queue/:id/retry", asyncHandler(c.retryImage));
 // Payments audit
 adminRouter.get("/payments", asyncHandler(c.listPayments));
 
+// Monitoring
+adminRouter.get("/monitoring/health", asyncHandler(c.monitoringHealth));
+adminRouter.post("/cache/clear", asyncHandler(c.cacheClear));
+
 // Collections
 adminRouter.post("/collections", asyncHandler(cc.adminCreate));
 adminRouter.delete("/collections/:id", asyncHandler(cc.adminDelete));

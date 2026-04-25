@@ -25,6 +25,7 @@ import { packageRouter } from "./routes/package.routes";
 import { paddleRouter } from "./routes/paddle.routes";
 import { paymentsRouter } from "./routes/payments.routes";
 import { progressRouter } from "./routes/progress.routes";
+import { replyRouter } from "./routes/reply.routes";
 import { quizRouter } from "./routes/quiz.routes";
 import { subscriptionRouter } from "./routes/subscription.routes";
 import { userRouter } from "./routes/user.routes";
@@ -121,6 +122,7 @@ function createApp() {
   app.use("/learning", learningRouter);
   app.use("/progress", progressRouter);
   app.use("/quiz", quizRouter);
+  app.use("/replies", replyRouter);
   app.use("/packages", packageRouter);
   app.use("/subscription", subscriptionRouter);
   app.use("/payments", paymentsRouter);
