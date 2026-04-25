@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/exams", label: "Exams" },
   { href: "/learn", label: "Learn" },
   { href: "/review", label: "Review" },
+  { href: "/quiz", label: "Quiz" },
   { href: "/bookmarks", label: "Bookmarks" },
   { href: "/statistics", label: "Statistics" },
   { href: "/pricing", label: "Pricing" },
