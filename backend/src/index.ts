@@ -12,6 +12,7 @@ import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bookmarkRouter } from "./routes/bookmark.routes";
 import { chatRouter } from "./routes/chat.routes";
+import { deckRouter } from "./routes/deck.routes";
 import { goalsRouter } from "./routes/goals.routes";
 import { internalRouter } from "./routes/internal.routes";
 import { leagueRouter } from "./routes/league.routes";
@@ -109,6 +110,7 @@ function createApp() {
   app.use("/achievements", achievementRouter);
   app.use("/bookmarks", bookmarkRouter);
   app.use("/chat", chatRouter);
+  app.use("/decks", deckRouter);
   app.use("/goals", goalsRouter);
   app.use("/words", wordRouter);
   app.use("/league", leagueRouter);
