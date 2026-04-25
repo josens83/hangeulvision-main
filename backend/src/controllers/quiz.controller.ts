@@ -16,7 +16,7 @@ const EXAMS = [
 const questionsQuery = z.object({
   exam: z.enum(EXAMS).default("TOPIK_I"),
   count: z.coerce.number().int().min(3).max(20).default(10),
-  type: z.enum(["multiple_choice"]).default("multiple_choice"),
+  type: z.enum(["multiple_choice", "fill", "match", "timed"]).default("multiple_choice"),
 });
 
 const submitBody = z.object({
@@ -37,15 +37,14 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** GET /quiz/questions?exam=TOPIK_I&count=10&type=multiple_choice */
+/** GET /quiz/questions?exam=TOPIK_I&count=10&type=multiple_choice|fill|match|timed */
 export async function getQuestions(req: Request, res: Response) {
-  uid(req); // auth check
+  uid(req);
   const q = questionsQuery.parse(req.query);
 
-  // Fetch more words than needed so we have distractors
   const allWords = await prisma.word.findMany({
     where: { exam: q.exam, active: true },
-    select: { id: true, word: true, definitionEn: true },
+    select: { id: true, word: true, romanization: true, definitionEn: true },
   });
 
   if (allWords.length < 4) {
@@ -56,30 +55,48 @@ export async function getQuestions(req: Request, res: Response) {
     return;
   }
 
-  // Pick N random words as questions
   const shuffled = shuffle(allWords);
-  const questionWords = shuffled.slice(0, Math.min(q.count, allWords.length));
 
-  const questions = questionWords.map((w) => {
-    // Pick 3 distractors (different from correct answer)
-    const distractors = shuffle(
-      allWords.filter((d) => d.id !== w.id),
-    ).slice(0, 3);
-
-    // Build 4 options and randomize position
-    const options = shuffle([
-      w.definitionEn,
-      ...distractors.map((d) => d.definitionEn),
-    ]);
-
-    return {
+  if (q.type === "fill") {
+    const words = shuffled.slice(0, Math.min(q.count, allWords.length));
+    const questions = words.map((w) => ({
       wordId: w.id,
-      word: w.word,
-      options,
-      correctIndex: options.indexOf(w.definitionEn),
-    };
-  });
+      definitionEn: w.definitionEn,
+      answer: w.word,
+      romanization: w.romanization,
+    }));
+    res.json({ questions, exam: q.exam, type: "fill" });
+    return;
+  }
 
+  if (q.type === "match") {
+    const pairCount = Math.min(5, allWords.length);
+    const words = shuffled.slice(0, pairCount);
+    const pairs = words.map((w) => ({ wordId: w.id, word: w.word, definitionEn: w.definitionEn }));
+    const shuffledDefs = shuffle(pairs.map((p) => ({ wordId: p.wordId, definitionEn: p.definitionEn })));
+    res.json({ pairs, shuffledDefinitions: shuffledDefs, exam: q.exam, type: "match" });
+    return;
+  }
+
+  if (q.type === "timed") {
+    const count = Math.min(20, allWords.length);
+    const words = shuffled.slice(0, count);
+    const questions = words.map((w) => {
+      const distractors = shuffle(allWords.filter((d) => d.id !== w.id)).slice(0, 3);
+      const options = shuffle([w.definitionEn, ...distractors.map((d) => d.definitionEn)]);
+      return { wordId: w.id, word: w.word, options, correctIndex: options.indexOf(w.definitionEn) };
+    });
+    res.json({ questions, exam: q.exam, type: "timed", timeLimit: 60 });
+    return;
+  }
+
+  // Default: multiple_choice
+  const questionWords = shuffled.slice(0, Math.min(q.count, allWords.length));
+  const questions = questionWords.map((w) => {
+    const distractors = shuffle(allWords.filter((d) => d.id !== w.id)).slice(0, 3);
+    const options = shuffle([w.definitionEn, ...distractors.map((d) => d.definitionEn)]);
+    return { wordId: w.id, word: w.word, options, correctIndex: options.indexOf(w.definitionEn) };
+  });
   res.json({ questions, exam: q.exam, type: q.type });
 }
 
