@@ -14,6 +14,7 @@ import { bookmarkRouter } from "./routes/bookmark.routes";
 import { chatRouter } from "./routes/chat.routes";
 import { goalsRouter } from "./routes/goals.routes";
 import { internalRouter } from "./routes/internal.routes";
+import { leagueRouter } from "./routes/league.routes";
 import { learningRouter } from "./routes/learning.routes";
 import { notificationRouter } from "./routes/notification.routes";
 import { supportRouter } from "./routes/support.routes";
@@ -110,6 +111,7 @@ function createApp() {
   app.use("/chat", chatRouter);
   app.use("/goals", goalsRouter);
   app.use("/words", wordRouter);
+  app.use("/league", leagueRouter);
   app.use("/learning", learningRouter);
   app.use("/progress", progressRouter);
   app.use("/quiz", quizRouter);

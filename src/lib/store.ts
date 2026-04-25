@@ -265,9 +265,10 @@ export const useStore = create<Store>()(
           };
         });
 
-        // 2. Fire-and-forget: grade + goal progress + achievement check.
+        // 2. Fire-and-forget: grade + goal progress + league XP + achievement check.
         void api.post(`/progress/${encodeURIComponent(wordId)}/grade`, { grade });
         void api.post("/goals/progress");
+        void api.post("/league/xp", { xp: 10 });
         void api.post<{ newlyUnlocked: Array<{ id: string; name: string; icon: string | null }> }>(
           "/achievements/check",
         ).then((res) => {
