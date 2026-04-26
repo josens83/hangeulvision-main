@@ -27,20 +27,38 @@ async function ensureLeagueAndMembership(userId: string) {
   const { start, end } = currentWeekRange();
   const slug = `bronze-${start.toISOString().slice(0, 10)}`;
 
+  // Race-safe: try find → create with P2002 catch (concurrent requests
+  // both see null and both try to insert).
   let league = await prisma.league.findUnique({ where: { slug } });
   if (!league) {
-    league = await prisma.league.create({
-      data: { slug, name: "Bronze League", tier: 1, startsAt: start, endsAt: end },
-    });
+    try {
+      league = await prisma.league.create({
+        data: { slug, name: "Bronze League", tier: 1, startsAt: start, endsAt: end },
+      });
+    } catch (err: any) {
+      if (err?.code === "P2002") {
+        league = await prisma.league.findUnique({ where: { slug } });
+      }
+      if (!league) throw err;
+    }
   }
 
   let membership = await prisma.leagueParticipant.findUnique({
     where: { userId_leagueId: { userId, leagueId: league.id } },
   });
   if (!membership) {
-    membership = await prisma.leagueParticipant.create({
-      data: { userId, leagueId: league.id, score: 0 },
-    });
+    try {
+      membership = await prisma.leagueParticipant.create({
+        data: { userId, leagueId: league.id, score: 0 },
+      });
+    } catch (err: any) {
+      if (err?.code === "P2002") {
+        membership = await prisma.leagueParticipant.findUnique({
+          where: { userId_leagueId: { userId, leagueId: league.id } },
+        });
+      }
+      if (!membership) throw err;
+    }
   }
 
   return { league, membership };
