@@ -57,9 +57,8 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
   }, [word.id]);
 
   const commit = useCallback((action: FlashAction) => {
-    const exitDir =
-      action === "know" ? "right" : action === "dontKnow" ? "left" : "up";
-    const grade: Grade = action === "know" ? 5 : action === "hard" ? 3 : 1;
+    const exitDir = action === "know" ? "right" : "left";
+    const grade: Grade = action === "know" ? 4 : 1;
     setLeaving(exitDir);
     // Let the exit animation play before handing off to the parent.
     window.setTimeout(() => onActionRef.current(action, grade), 180);
@@ -98,11 +97,6 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
       commit("dontKnow");
       return;
     }
-    if (dy < -SWIPE_THRESHOLD || (dy < -20 && vy > VELOCITY_THRESHOLD)) {
-      commit("hard");
-      return;
-    }
-
     // Below threshold — treat as a tap.
     if (!movedRef.current) {
       setFlipped((f) => !f);
@@ -119,7 +113,6 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
       if (leaving) return;
       if (e.key === "ArrowRight") commit("know");
       else if (e.key === "ArrowLeft") commit("dontKnow");
-      else if (e.key === "ArrowUp") commit("hard");
       else if (e.key === "Enter") commit("know");
       else if (e.key === " ") {
         e.preventDefault();
@@ -146,7 +139,7 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
     };
   }, [leaving, drag.x, drag.y, rotation]);
 
-  const intent = drag.x > 40 ? "know" : drag.x < -40 ? "dontKnow" : drag.y < -40 ? "hard" : null;
+  const intent = drag.x > 40 ? "know" : drag.x < -40 ? "dontKnow" : null;
 
   return (
     <div className="relative mx-auto w-full max-w-md select-none touch-none">
@@ -164,15 +157,8 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
             intent === "know" ? "opacity-100 scale-105" : "opacity-0"
           }`}
         >
-          KNOW IT
+          GOT IT
         </div>
-      </div>
-      <div
-        className={`pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-full border-2 border-amber-400 bg-amber-500/90 px-3 py-1 text-xs font-bold text-white transition ${
-          intent === "hard" ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        HARD ↑
       </div>
 
       <div
@@ -187,29 +173,23 @@ function FlashCardGestureInner({ word, onAction }: FlashCardGestureProps) {
         {flipped ? <CardBack word={word} /> : <CardFront word={word} art={art} setArt={setArt} />}
       </div>
 
-      {/* Button bar — visible on every device */}
-      <div className="mt-6 grid grid-cols-3 gap-2">
+      {/* Button bar — 2 buttons (VocaVision parity) */}
+      <div className="mt-6 grid grid-cols-2 gap-3">
         <button
           onClick={() => commit("dontKnow")}
-          className="rounded-2xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-100"
+          className="rounded-2xl border border-rose-200 bg-rose-50 py-3.5 text-sm font-semibold text-rose-600 hover:bg-rose-100"
         >
-          ← Don't know
-        </button>
-        <button
-          onClick={() => commit("hard")}
-          className="rounded-2xl border border-amber-200 bg-amber-50 py-3 text-sm font-semibold text-amber-700 hover:bg-amber-100"
-        >
-          ↑ Hard
+          ✗ Don&apos;t know
         </button>
         <button
           onClick={() => commit("know")}
-          className="rounded-2xl border border-brand-300 bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+          className="rounded-2xl border border-brand-300 bg-brand-500 py-3.5 text-sm font-semibold text-white hover:bg-brand-600"
         >
-          Know it →
+          ✓ Got it
         </button>
       </div>
       <div className="mt-2 text-center text-[11px] text-ink-500">
-        Swipe · tap to flip · arrow keys / Enter / Space on desktop
+        Swipe left/right · tap to flip · arrow keys / Enter / Space
       </div>
     </div>
   );

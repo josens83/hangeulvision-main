@@ -21,13 +21,13 @@ export default function ReviewPage() {
   }, [user, dueIds]);
 
   const [idx, setIdx] = useState(0);
-  const [tally, setTally] = useState({ know: 0, hard: 0, dontKnow: 0 });
+  const [tally, setTally] = useState({ know: 0, dontKnow: 0 });
   const [done, setDone] = useState(false);
   const [gradeFlash, setGradeFlash] = useState<"correct" | "wrong" | null>(null);
 
   useEffect(() => {
     setIdx(0);
-    setTally({ know: 0, hard: 0, dontKnow: 0 });
+    setTally({ know: 0, dontKnow: 0 });
     setDone(false);
   }, [queue.length]);
 
@@ -51,10 +51,10 @@ export default function ReviewPage() {
   if (!current) return <EmptyState />;
 
   if (done) {
-    const total = tally.know + tally.hard + tally.dontKnow;
-    const correct = tally.know + tally.hard;
+    const total = tally.know + tally.dontKnow;
+    const correct = tally.know;
     const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-    return <SessionComplete total={total} correct={correct} pct={pct} tally={tally} onRetry={() => { setIdx(0); setDone(false); setTally({ know: 0, hard: 0, dontKnow: 0 }); }} />;
+    return <SessionComplete total={total} correct={correct} pct={pct} tally={tally} onRetry={() => { setIdx(0); setDone(false); setTally({ know: 0, dontKnow: 0 }); }} />;
   }
 
   const progress = Math.round((idx / queue.length) * 100);
@@ -131,7 +131,7 @@ function SessionComplete({
   total: number;
   correct: number;
   pct: number;
-  tally: { know: number; hard: number; dontKnow: number };
+  tally: { know: number; dontKnow: number };
   onRetry: () => void;
 }) {
   const rating =
@@ -160,14 +160,10 @@ function SessionComplete({
       </p>
 
       {/* Breakdown */}
-      <div className="mx-auto mt-6 grid max-w-xs grid-cols-3 gap-3">
+      <div className="mx-auto mt-6 grid max-w-xs grid-cols-2 gap-3">
         <div className="rounded-2xl border border-green-200 bg-green-50 p-3">
           <div className="text-2xl font-bold text-green-600">{tally.know}</div>
           <div className="text-[11px] text-green-700">Got it</div>
-        </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-          <div className="text-2xl font-bold text-amber-600">{tally.hard}</div>
-          <div className="text-[11px] text-amber-700">Hard</div>
         </div>
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3">
           <div className="text-2xl font-bold text-rose-600">{tally.dontKnow}</div>

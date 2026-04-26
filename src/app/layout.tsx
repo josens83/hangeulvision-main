@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { ConditionalFooter } from "@/components/ConditionalFooter";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { AuthBoot } from "@/components/AuthBoot";
@@ -71,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:pb-24 sm:pt-10">
           {children}
         </main>
-        <Footer />
+        <ConditionalFooter />
         <BottomTabBar />
         <AchievementToastContainer />
         <InstallPrompt />
