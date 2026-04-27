@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import { useStore } from "@/lib/store";
 import { api, getAuthToken } from "@/lib/api";
 
@@ -83,7 +84,13 @@ function ChatInner() {
                 ? "bg-brand-500 text-white"
                 : "bg-gray-100 text-ink-900"
             }`}>
-              <div className="whitespace-pre-wrap">{m.content}</div>
+              {m.role === "assistant" ? (
+                <div className="prose prose-sm prose-slate max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_strong]:text-ink-900 [&_code]:rounded [&_code]:bg-gray-200 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap">{m.content}</div>
+              )}
             </div>
           </div>
         ))}
