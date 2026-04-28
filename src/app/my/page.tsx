@@ -6,11 +6,19 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { api, getAuthToken } from "@/lib/api";
 
+interface Purchase {
+  id: string;
+  exam: string;
+  expiresAt: string;
+  package: { slug: string; name: string; nameEn?: string | null; exam: string };
+}
+
 export default function MySubscriptionPage() {
   const router = useRouter();
   const user = useStore((s) => s.currentUser());
   const hydrate = useStore((s) => s.hydrate);
   const [sub, setSub] = useState<any>(null);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -20,6 +28,9 @@ export default function MySubscriptionPage() {
     if (!getAuthToken()) return;
     api.get("/user/me").then((r: any) => {
       if (r.ok && r.data?.user) setSub(r.data.user);
+    });
+    api.get<{ purchases: Purchase[] }>("/packages/me/access").then((r) => {
+      if (r.ok && r.data) setPurchases(r.data.purchases);
     });
   }, []);
 
@@ -86,6 +97,25 @@ export default function MySubscriptionPage() {
           </div>
         )}
       </div>
+
+      {purchases.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-bold text-ink-900">Purchased packs</h2>
+          <div className="space-y-2">
+            {purchases.map((p) => (
+              <div key={p.id} className="card flex items-center justify-between p-4">
+                <div>
+                  <div className="font-semibold text-ink-900">{p.package.nameEn ?? p.package.name}</div>
+                  <div className="text-xs text-ink-500">{p.package.exam.replace(/_/g, " ")}</div>
+                </div>
+                <div className="text-xs text-ink-500">
+                  Expires {new Date(p.expiresAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-bold text-ink-900">What's included</h2>

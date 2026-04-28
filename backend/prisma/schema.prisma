@@ -401,6 +401,7 @@ model ProductPackage {
   id              String              @id @default(cuid())
   slug            String              @unique   // e.g. "topik-ii-mid"
   name            String
+  nameEn          String?
   description     String
   exam            ExamCategory
   priceUSD        Decimal             @db.Decimal(10, 2)
