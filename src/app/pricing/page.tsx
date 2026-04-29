@@ -181,6 +181,26 @@ export default function PricingPage() {
           Secure checkout · Cancel anytime · {cycle === "yearly" ? "20% annual discount" : "No commitment"}
         </p>
       </section>
+
+      {/* Standalone packs */}
+      <section>
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-ink-900">Or buy individual packs</h2>
+            <p className="text-sm text-ink-500">One-time purchase · 6-month access · no subscription.</p>
+          </div>
+          <Link href="/packages" className="text-sm font-semibold text-brand-600">Browse all →</Link>
+        </div>
+        <div className="mt-4 card p-6 text-center">
+          <div className="text-4xl">📦</div>
+          <h3 className="mt-2 font-bold text-ink-900">TOPIK I Complete</h3>
+          <p className="text-sm text-ink-500">2,000 words · 6-month access</p>
+          <div className="mt-2 text-2xl font-bold text-ink-900">$4.99</div>
+          <Link href="/packages/topik-i-complete" className="btn-outline mt-3 inline-block">
+            View pack details
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

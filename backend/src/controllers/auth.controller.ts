@@ -306,6 +306,10 @@ export async function googleCallback(req: Request, res: Response) {
           lastActiveAt: new Date(),
         },
       });
+      // Welcome email for new Google users
+      import("../services/email.service").then((m) =>
+        m.sendWelcomeEmail(user!.email, user!.name),
+      ).catch(() => {});
     }
 
     // Issue tokens
