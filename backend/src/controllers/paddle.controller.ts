@@ -141,7 +141,7 @@ export async function webhook(req: Request, res: Response) {
     data: {
       id: string;
       status: string;
-      custom_data?: { userId?: string; plan?: string };
+      custom_data?: { userId?: string; plan?: string; type?: string; slug?: string };
       current_billing_period?: { ends_at: string };
       scheduled_change?: { action: string } | null;
     };
@@ -204,6 +204,26 @@ export async function webhook(req: Request, res: Response) {
             autoRenewal: false,
           },
         });
+        break;
+      }
+
+      // Standalone pack purchase (one-time transaction)
+      case "transaction.completed": {
+        const slug = subData.custom_data?.slug;
+        const type = subData.custom_data?.type;
+        if (type === "package" && slug) {
+          const pkg = await prisma.productPackage.findUnique({ where: { slug } });
+          if (pkg) {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + pkg.durationDays);
+            await prisma.userPurchase.upsert({
+              where: { userId_packageId: { userId, packageId: pkg.id } },
+              create: { userId, packageId: pkg.id, exam: pkg.exam, expiresAt },
+              update: { expiresAt },
+            });
+            logger.info(`Paddle standalone purchase: user=${userId} pkg=${slug} expires=${expiresAt.toISOString()}`);
+          }
+        }
         break;
       }
     }
