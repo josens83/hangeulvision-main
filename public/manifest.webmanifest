@@ -1,13 +1,15 @@
 {
   "name": "HangeulVision AI",
   "short_name": "HangeulVision",
-  "description": "AI-powered Korean vocabulary for TOPIK, KIIP and EPS.",
+  "description": "AI-powered Korean vocabulary for TOPIK, KIIP and EPS. Every word gets an AI concept image, hanja breakdown, and mnemonic.",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f8fafc",
   "theme_color": "#14a896",
   "lang": "en-US",
+  "dir": "ltr",
   "categories": ["education", "productivity"],
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
@@ -15,7 +17,12 @@
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "Review", "url": "/review", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
-    { "name": "Dashboard", "url": "/dashboard", "icons": [{ "src": "/icon.svg", "sizes": "any" }] }
-  ]
+    { "name": "Review", "short_name": "Review", "url": "/review", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
+    { "name": "Quiz", "short_name": "Quiz", "url": "/quiz", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
+    { "name": "Dashboard", "short_name": "Home", "url": "/dashboard", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
+    { "name": "Chat", "short_name": "AI", "url": "/chat", "icons": [{ "src": "/icon.svg", "sizes": "any" }] }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

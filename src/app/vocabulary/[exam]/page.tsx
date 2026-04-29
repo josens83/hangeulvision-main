@@ -15,16 +15,23 @@ export default function VocabularyExam() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const limit = 20;
+
+  // Debounce search by 300ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const load = useCallback(async () => {
     setLoading(true);
     const qs = new URLSearchParams({ exam: exam ?? "", page: String(page), limit: String(limit) });
-    if (search.trim()) qs.set("search", search.trim());
+    if (debouncedSearch.trim()) qs.set("search", debouncedSearch.trim());
     const r = await api.get<{ words: Word[]; total: number }>(`/words?${qs}`);
     if (r.ok && r.data) { setWords(r.data.words); setTotal(r.data.total); }
     setLoading(false);
-  }, [exam, page, search]);
+  }, [exam, page, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
 
