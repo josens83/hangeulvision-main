@@ -242,6 +242,40 @@ export async function webhook(req: Request, res: Response) {
         }
         break;
       }
+
+      // Refund
+      case "adjustment.updated": {
+        const slug = subData.custom_data?.slug;
+        const type = subData.custom_data?.type;
+        if (type === "package" && slug) {
+          const pkg = await prisma.productPackage.findUnique({ where: { slug } });
+          if (pkg) {
+            await prisma.userPurchase.updateMany({
+              where: { userId, packageId: pkg.id },
+              data: { expiresAt: new Date() },
+            });
+            logger.info(`Paddle refund: user=${userId} pkg=${slug}`);
+          }
+        } else {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { subscriptionStatus: "CANCELLED", tier: "free", autoRenewal: false },
+          });
+        }
+        break;
+      }
+
+      // Payment failure
+      case "transaction.payment_failed": {
+        const failUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+        if (failUser) {
+          import("../services/email.service").then((m) =>
+            m.sendPasswordResetEmail(failUser.email, ""), // Reuse as generic notification — TODO: dedicated payment failure email
+          ).catch(() => {});
+        }
+        logger.warn(`Paddle payment failed: user=${userId}`);
+        break;
+      }
     }
   } catch (err) {
     logger.error(`Paddle webhook processing error: ${err}`);

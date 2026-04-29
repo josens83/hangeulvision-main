@@ -14,11 +14,45 @@ export const updateUser = stub("admin.updateUser");
 export const deleteUser = stub("admin.deleteUser");
 
 // Words CRUD
-export const listWords = stub("admin.listWords");
-export const createWord = stub("admin.createWord");
-export const getWord = stub("admin.getWord");
-export const updateWord = stub("admin.updateWord");
-export const deleteWord = stub("admin.deleteWord");
+export async function listWords(req: Request, res: Response) {
+  const page = Number(req.query.page ?? 1);
+  const limit = Math.min(50, Number(req.query.limit ?? 20));
+  const search = (req.query.search as string) ?? "";
+  const where: any = { active: true };
+  if (search) where.OR = [
+    { word: { contains: search, mode: "insensitive" } },
+    { definitionEn: { contains: search, mode: "insensitive" } },
+  ];
+  const [total, words] = await prisma.$transaction([
+    prisma.word.count({ where }),
+    prisma.word.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: "desc" }, select: { id: true, word: true, romanization: true, definitionEn: true, exam: true, level: true, partOfSpeech: true, active: true, createdAt: true } }),
+  ]);
+  res.json({ words, total, page, limit });
+}
+
+export async function createWord(req: Request, res: Response) {
+  const data = req.body;
+  const word = await prisma.word.create({ data: { word: data.word, romanization: data.romanization ?? "", definitionEn: data.definitionEn ?? "", partOfSpeech: data.partOfSpeech ?? "NOUN", level: data.level ?? 1, exam: data.exam ?? "TOPIK_I", tags: data.tags ?? [] } });
+  res.status(201).json({ word });
+}
+
+export async function getWord(req: Request, res: Response) {
+  const word = await prisma.word.findUnique({ where: { id: req.params.id }, include: { etymology: true, mnemonic: true, examples: true, visuals: true } });
+  if (!word) { res.status(404).json({ error: "not_found" }); return; }
+  res.json({ word });
+}
+
+export async function updateWord(req: Request, res: Response) {
+  const { id } = req.params;
+  const data = req.body;
+  const word = await prisma.word.update({ where: { id }, data: { word: data.word, romanization: data.romanization, definitionEn: data.definitionEn, level: data.level, active: data.active } });
+  res.json({ word });
+}
+
+export async function deleteWord(req: Request, res: Response) {
+  await prisma.word.update({ where: { id: req.params.id }, data: { active: false } });
+  res.status(204).end();
+}
 
 // Image queue
 export const imageQueue = stub("admin.imageQueue");
