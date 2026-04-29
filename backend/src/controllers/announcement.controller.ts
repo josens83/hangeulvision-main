@@ -48,7 +48,21 @@ export async function create(req: Request, res: Response) {
       body: body.content,
     },
   });
-  res.status(201).json({ announcement: { id: notif.id, title: notif.title } });
+
+  // Broadcast: create notification for all users
+  const users = await prisma.user.findMany({ select: { id: true } });
+  if (users.length > 0) {
+    await prisma.notification.createMany({
+      data: users.map((u) => ({
+        userId: u.id,
+        kind: "system" as any,
+        title: body.title,
+        body: body.content,
+      })),
+    }).catch(() => {});
+  }
+
+  res.status(201).json({ announcement: { id: notif.id, title: notif.title, broadcast: users.length } });
 }
 
 /** DELETE /admin/announcements/:id */

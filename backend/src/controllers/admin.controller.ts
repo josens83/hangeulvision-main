@@ -8,7 +8,15 @@ export const stats = stub("admin.stats");
 export const contentInventory = stub("admin.contentInventory");
 
 // Users
-export const listUsers = stub("admin.listUsers");
+export async function listUsers(_req: Request, res: Response) {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: { id: true, email: true, name: true, tier: true, role: true, subscriptionStatus: true, subscriptionPlan: true, subscriptionEnd: true, streakDays: true, createdAt: true },
+  });
+  res.json({ users });
+}
+
 export const getUser = stub("admin.getUser");
 export const updateUser = stub("admin.updateUser");
 export const deleteUser = stub("admin.deleteUser");

@@ -1,13 +1,14 @@
 import { Router } from "express";
 import * as c from "../controllers/auth.controller";
 import { authRequired } from "../middleware/auth.middleware";
+import { authLimiter } from "../middleware/strictRateLimit.middleware";
 import { asyncHandler } from "../utils/http";
 
 export const authRouter = Router();
 
-// Email / password
-authRouter.post("/signup", asyncHandler(c.signup));
-authRouter.post("/login", asyncHandler(c.login));
+// Email / password (rate-limited: 10 per 15 min)
+authRouter.post("/signup", authLimiter, asyncHandler(c.signup));
+authRouter.post("/login", authLimiter, asyncHandler(c.login));
 authRouter.post("/logout", asyncHandler(c.logout));
 authRouter.post("/refresh", asyncHandler(c.refresh));
 
