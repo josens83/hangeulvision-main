@@ -180,6 +180,15 @@ export async function webhook(req: Request, res: Response) {
             autoRenewal: !isCancelling,
           },
         });
+        // Send subscription welcome email
+        if (!isCancelling) {
+          const subUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+          if (subUser) {
+            import("../services/email.service").then((m) =>
+              m.sendSubscriptionWelcome(subUser.email, subUser.name, tierFromPlan(plan ?? "basic"), plan ?? "basic", ""),
+            ).catch(() => {});
+          }
+        }
         break;
       }
 
@@ -222,6 +231,13 @@ export async function webhook(req: Request, res: Response) {
               update: { expiresAt },
             });
             logger.info(`Paddle standalone purchase: user=${userId} pkg=${slug} expires=${expiresAt.toISOString()}`);
+            // Send receipt email
+            const buyer = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+            if (buyer) {
+              import("../services/email.service").then((m) =>
+                m.sendPurchaseReceipt(buyer.email, buyer.name, pkg, String(pkg.priceUSD), subData.id, expiresAt.toLocaleDateString()),
+              ).catch(() => {});
+            }
           }
         }
         break;

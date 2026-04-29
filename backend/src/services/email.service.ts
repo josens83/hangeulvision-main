@@ -57,3 +57,37 @@ export async function sendStreakEmail(to: string, name: string, streak: number) 
     <p><a href="https://hangeulvision-main.vercel.app/review" style="background:#14a896;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Continue Learning</a></p>
   `);
 }
+
+export async function sendPurchaseReceipt(
+  to: string, name: string,
+  pkg: { name: string; nameEn?: string | null },
+  amount: string, transactionId: string, expiresAt?: string,
+) {
+  const pkgName = pkg.nameEn ?? pkg.name;
+  await send(to, `Receipt — ${pkgName}`, `
+    <h2>Thank you, ${name}!</h2>
+    <p>Your purchase of <strong>${pkgName}</strong> is confirmed.</p>
+    <table style="margin:16px 0;border-collapse:collapse;">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;">${amount}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">Transaction</td><td style="padding:4px 0;">${transactionId}</td></tr>
+      ${expiresAt ? `<tr><td style="padding:4px 16px 4px 0;color:#6b7280;">Access until</td><td style="padding:4px 0;">${expiresAt}</td></tr>` : ""}
+    </table>
+    <p><a href="https://hangeulvision-main.vercel.app/learn" style="background:#14a896;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Start Learning</a></p>
+    <p style="color:#6b7280;font-size:12px;">— HangeulVision AI by Unipath</p>
+  `);
+}
+
+export async function sendSubscriptionWelcome(
+  to: string, name: string, tier: string, cycle: string, amount: string,
+) {
+  await send(to, `Welcome to ${tier} — HangeulVision AI`, `
+    <h2>Welcome to ${tier}, ${name}! 🎉</h2>
+    <p>Your ${cycle} subscription is now active.</p>
+    <table style="margin:16px 0;border-collapse:collapse;">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">Plan</td><td style="padding:4px 0;">${tier} (${cycle})</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;">${amount}</td></tr>
+    </table>
+    <p>You now have access to all ${tier === "Premium" ? "13,500+" : "5,000+"} words.</p>
+    <p><a href="https://hangeulvision-main.vercel.app/dashboard" style="background:#14a896;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Go to Dashboard</a></p>
+  `);
+}
