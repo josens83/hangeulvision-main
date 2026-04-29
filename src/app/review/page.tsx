@@ -35,7 +35,8 @@ export default function ReviewPage() {
 
   const handleAction = (action: FlashAction, grade: Grade) => {
     if (current && user) gradeWord(current.id, grade);
-    setTally((t) => ({ ...t, [action]: t[action] + 1 }));
+    const key = action === "know" ? "know" : "dontKnow";
+    setTally((t) => ({ ...t, [key]: t[key] + 1 }));
 
     const isCorrect = grade >= 3;
     setGradeFlash(isCorrect ? "correct" : "wrong");

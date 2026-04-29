@@ -408,6 +408,7 @@ model ProductPackage {
   priceKRW        Int
   durationDays    Int                 @default(180)
   paddleProductId String?
+  paddlePriceId   String?
   active          Boolean             @default(true)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
