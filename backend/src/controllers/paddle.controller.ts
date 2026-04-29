@@ -187,6 +187,10 @@ export async function webhook(req: Request, res: Response) {
             import("../services/email.service").then((m) =>
               m.sendSubscriptionWelcome(subUser.email, subUser.name, tierFromPlan(plan ?? "basic"), plan ?? "basic", ""),
             ).catch(() => {});
+            // In-app notification
+            import("../services/notification.service").then((m) =>
+              m.createNotification(userId, "system", "Subscription activated!", `Welcome to ${tierFromPlan(plan ?? "basic")} plan.`),
+            ).catch(() => {});
           }
         }
         break;
@@ -238,6 +242,10 @@ export async function webhook(req: Request, res: Response) {
                 m.sendPurchaseReceipt(buyer.email, buyer.name, pkg, String(pkg.priceUSD), subData.id, expiresAt.toLocaleDateString()),
               ).catch(() => {});
             }
+            // In-app notification
+            import("../services/notification.service").then((m) =>
+              m.createNotification(userId, "system", "Purchase confirmed!", `${pkg.nameEn ?? pkg.name} is now active.`),
+            ).catch(() => {});
           }
         }
         break;

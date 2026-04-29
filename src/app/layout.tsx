@@ -76,6 +76,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AchievementToastContainer />
         <InstallPrompt />
         <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "HangeulVision AI",
+              url: "https://hangeulvision-main.vercel.app",
+              applicationCategory: "EducationalApplication",
+              operatingSystem: "Web, iOS, Android",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free tier with 800 TOPIK I words" },
+              description: "AI-powered Korean vocabulary for TOPIK, KIIP and EPS with concept images, hanja breakdown, and spaced repetition.",
+              publisher: { "@type": "Organization", name: "Unipath", url: "https://hangeulvision-main.vercel.app" },
+            }),
+          }}
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(()=>{}); }); }`,
           }}
