@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 import { useStore } from "@/lib/store";
 
-const LINKS = [
-  { href: "/exams", label: "Exams" },
-  { href: "/learn", label: "Learn" },
-  { href: "/review", label: "Review" },
-  { href: "/quiz", label: "Quiz" },
-  { href: "/bookmarks", label: "Bookmarks" },
-  { href: "/statistics", label: "Statistics" },
-  { href: "/pricing", label: "Pricing" },
-];
+const LINK_KEYS = [
+  { href: "/exams", key: "exams" },
+  { href: "/learn", key: "learn" },
+  { href: "/review", key: "review" },
+  { href: "/quiz", key: "quiz" },
+  { href: "/bookmarks", key: "bookmarks" },
+  { href: "/statistics", key: "statistics" },
+  { href: "/pricing", key: "pricing" },
+] as const;
 
 export function Navbar() {
   const pathname = usePathname();
@@ -24,6 +26,7 @@ export function Navbar() {
   const currentUserId = useStore((s) => s.currentUserId);
   const users = useStore((s) => s.users);
   const signOut = useStore((s) => s.signOut);
+  const t = useTranslations("nav");
   useEffect(() => setMounted(true), []);
   useEffect(() => setOpen(false), [pathname]);
 
@@ -36,7 +39,7 @@ export function Navbar() {
           <Logo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => (
+          {LINK_KEYS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -46,11 +49,12 @@ export function Navbar() {
                   : "text-ink-700 hover:bg-gray-100"
               }`}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
+          <LocaleSwitcher />
           {user ? (
             <>
               <NotificationBell />
@@ -59,10 +63,10 @@ export function Navbar() {
           ) : (
             <>
               <Link href="/signin" className="btn-ghost">
-                Sign in
+                {t("signIn")}
               </Link>
               <Link href="/signup" className="btn-primary">
-                Start free
+                {t("startFree")}
               </Link>
             </>
           )}
@@ -80,32 +84,32 @@ export function Navbar() {
       {open ? (
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
-            {LINKS.map((l) => (
+            {LINK_KEYS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 className="rounded-xl px-3 py-2 text-sm font-medium text-ink-700 hover:bg-gray-100"
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
             <div className="mt-2 flex gap-2">
               {user ? (
                 <>
                   <Link href="/dashboard" className="btn-outline flex-1">
-                    Dashboard
+                    {t("dashboard")}
                   </Link>
                   <button onClick={signOut} className="btn-ghost">
-                    Sign out
+                    {t("signOut")}
                   </button>
                 </>
               ) : (
                 <>
                   <Link href="/signin" className="btn-outline flex-1">
-                    Sign in
+                    {t("signIn")}
                   </Link>
                   <Link href="/signup" className="btn-primary flex-1">
-                    Start free
+                    {t("startFree")}
                   </Link>
                 </>
               )}
@@ -128,6 +132,7 @@ function UserDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   // Close on navigation.
   useEffect(() => setOpen(false), [pathname]);
@@ -148,20 +153,20 @@ function UserDropdown({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-card">
-            <DropLink href="/dashboard" label="Dashboard" />
-            <DropLink href="/bookmarks" label="Bookmarks" />
-            <DropLink href="/achievements" label="Achievements" />
-            <DropLink href="/statistics" label="Statistics" />
+            <DropLink href="/dashboard" label={t("dashboard")} />
+            <DropLink href="/bookmarks" label={t("bookmarks")} />
+            <DropLink href="/achievements" label={t("achievements")} />
+            <DropLink href="/statistics" label={t("statistics")} />
             <div className="my-1 border-t border-gray-100" />
-            <DropLink href="/settings" label="Settings" />
-            <DropLink href="/my" label="My subscription" />
-            <DropLink href="/account" label="Account" />
+            <DropLink href="/settings" label={t("settings")} />
+            <DropLink href="/my" label={t("mySubscription")} />
+            <DropLink href="/account" label={t("account")} />
             <div className="my-1 border-t border-gray-100" />
             <button
               onClick={signOut}
               className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
             >
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </>

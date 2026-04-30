@@ -40,6 +40,7 @@ function AdminGuard({ children }: { children: ReactNode }) {
           <Link href={`/admin?key=${key}`} className="text-sm text-ink-700 hover:text-ink-900">
             Dashboard
           </Link>
+          <Link href={`/admin/analytics?key=${key}`} className="text-sm text-ink-700 hover:text-ink-900">Analytics</Link>
           <Link href={`/admin/words?key=${key}`} className="text-sm text-ink-700 hover:text-ink-900">Words</Link>
           <Link href={`/admin/cs?key=${key}`} className="text-sm text-ink-700 hover:text-ink-900">CS</Link>
           <Link href={`/admin/packages?key=${key}`} className="text-sm text-ink-700 hover:text-ink-900">Packs</Link>

@@ -89,3 +89,62 @@ export async function cacheClear(_req: Request, res: Response) {
   invalidateAll();
   res.json({ cleared: true });
 }
+
+/** GET /admin/analytics */
+export async function analytics(_req: Request, res: Response) {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Daily signups (30d)
+  const signups = await prisma.$queryRaw`
+    SELECT DATE("createdAt") as date, COUNT(*)::int as count
+    FROM "User"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt")
+    ORDER BY date
+  ` as { date: Date; count: number }[];
+
+  // Daily active users (sessions started in last 30d)
+  const dau = await prisma.$queryRaw`
+    SELECT DATE("startedAt") as date, COUNT(DISTINCT "userId")::int as count
+    FROM "LearningSession"
+    WHERE "startedAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("startedAt")
+    ORDER BY date
+  ` as { date: Date; count: number }[];
+
+  // Words learned per day (30d)
+  const wordsLearned = await prisma.$queryRaw`
+    SELECT DATE("lastReviewedAt") as date, COUNT(*)::int as count
+    FROM "UserProgress"
+    WHERE "lastReviewedAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("lastReviewedAt")
+    ORDER BY date
+  ` as { date: Date; count: number }[];
+
+  // Subscription tier distribution
+  const tierDist = await prisma.$queryRaw`
+    SELECT tier, COUNT(*)::int as count FROM "User" GROUP BY tier
+  ` as { tier: string; count: number }[];
+
+  // Exam distribution (words by exam)
+  const examDist = await prisma.$queryRaw`
+    SELECT exam, COUNT(*)::int as count FROM "Word" WHERE active = true GROUP BY exam
+  ` as { exam: string; count: number }[];
+
+  // Summary stats
+  const [totalUsers, totalWords, activeSubscribers] = await prisma.$transaction([
+    prisma.user.count(),
+    prisma.word.count({ where: { active: true } }),
+    prisma.user.count({ where: { subscriptionStatus: "ACTIVE" } }),
+  ]);
+
+  res.json({
+    signups: signups.map(r => ({ date: r.date, count: r.count })),
+    dau: dau.map(r => ({ date: r.date, count: r.count })),
+    wordsLearned: wordsLearned.map(r => ({ date: r.date, count: r.count })),
+    tierDistribution: tierDist,
+    examDistribution: examDist,
+    summary: { totalUsers, totalWords, activeSubscribers },
+  });
+}

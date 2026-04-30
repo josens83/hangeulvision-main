@@ -6,6 +6,8 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { AuthBoot } from "@/components/AuthBoot";
 import { AchievementToastContainer } from "@/components/AchievementToast";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hangeulvision-main.vercel.app"),
@@ -62,10 +64,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="min-h-screen antialiased">
+        <NextIntlClientProvider messages={messages}>
         <AuthBoot />
         <Navbar />
         <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:pb-24 sm:pt-10">
@@ -96,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(()=>{}); }); }`,
           }}
         />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

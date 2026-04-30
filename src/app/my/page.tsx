@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { api, getAuthToken } from "@/lib/api";
+import { api, API_URL, getAuthToken } from "@/lib/api";
 
 interface Purchase {
   id: string;
@@ -40,6 +40,21 @@ export default function MySubscriptionPage() {
     setCancelling(false);
     setShowConfirm(false);
     hydrate();
+  };
+
+  const downloadReceipt = async (txId: string) => {
+    const token = getAuthToken();
+    const resp = await fetch(`${API_URL}/payments/${txId}/receipt.pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) return;
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `receipt-${txId}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!user) return null;
@@ -108,8 +123,16 @@ export default function MySubscriptionPage() {
                   <div className="font-semibold text-ink-900">{p.package.nameEn ?? p.package.name}</div>
                   <div className="text-xs text-ink-500">{p.package.exam.replace(/_/g, " ")}</div>
                 </div>
-                <div className="text-xs text-ink-500">
-                  Expires {new Date(p.expiresAt).toLocaleDateString()}
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-ink-500">
+                    Expires {new Date(p.expiresAt).toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => downloadReceipt(p.id)}
+                    className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+                  >
+                    Receipt PDF
+                  </button>
                 </div>
               </div>
             ))}

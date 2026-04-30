@@ -13,6 +13,7 @@ adminRouter.use(authRequired, requireRole("admin", "editor"));
 // Dashboards
 adminRouter.get("/stats", asyncHandler(c.stats));
 adminRouter.get("/content-inventory", asyncHandler(c.contentInventory));
+adminRouter.get("/analytics", asyncHandler(c.analytics));
 
 // Users
 adminRouter.get("/users", asyncHandler(c.listUsers));
